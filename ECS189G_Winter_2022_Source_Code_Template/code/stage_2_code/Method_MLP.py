@@ -38,9 +38,9 @@ class Method_MLP(method, nn.Module):
         self.fc_layer_3 = nn.Linear(100, 100)
         self.activation_func_3 = nn.ReLU()
 
-        self.fc_layer_4 = nn.Linear(100, 10)
+        self.fc_layer_4 = nn.Linear(100, 100)
         # check here for nn.Softmax doc: https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html
-        self.activation_func_4 = nn.Softmax(dim=1)
+        self.activation_func_4 = nn.ReLU()
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer

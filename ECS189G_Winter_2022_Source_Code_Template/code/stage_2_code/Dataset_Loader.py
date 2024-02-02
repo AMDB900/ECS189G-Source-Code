@@ -21,7 +21,7 @@ class Dataset_Loader(dataset):
         print('loading data...')
         X_train = []
         y_train = []
-    
+        
         with open(self.dataset_source_folder_path + self.traindata_source_file_name, 'r') as f:
             for line in f:
                 line = line.strip('\n')
@@ -37,5 +37,6 @@ class Dataset_Loader(dataset):
                 elements = [int(i) for i in line.split(',')]
                 X_test.append(elements[1:])
                 y_test.append(elements[0])
+
                 
         return {'train': {'X': X_train, 'y': y_train}, 'test': {'X': X_test, 'y': y_test}}
