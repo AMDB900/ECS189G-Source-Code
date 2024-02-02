@@ -51,6 +51,7 @@ if 1:
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
     plt.title('Accuracy over Epochs')
+    plt.yticks([x / 100.0 for x in range(0, 100, 5)])
     plt.savefig(result_obj.result_destination_folder_path + "learning_graph.png")
     # ------------------------------------------------------
     
