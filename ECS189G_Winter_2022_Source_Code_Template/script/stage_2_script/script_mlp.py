@@ -39,9 +39,19 @@ if 1:
     print("************ Start ************")
     setting_obj.prepare(data_obj, method_obj, result_obj, evaluate_obj)
     setting_obj.print_setup_summary()
-    evaluations, accuracy_history = setting_obj.load_run_save_evaluate()
-    accuracy, precision, recall, fscore = evaluations
-    print("************ Overall Performance ************")
+    (
+        train_evaluations,
+        test_evaluations,
+        accuracy_history,
+    ) = setting_obj.load_run_save_evaluate()
+    accuracy, precision, recall, fscore = train_evaluations
+    print("************ Training Set Performance ************")
+    print("MLP Accuracy: " + str(accuracy))
+    print("MLP Precision: " + str(precision))
+    print("MLP Recall: " + str(recall))
+    print("MLP FScore: " + str(fscore))
+    accuracy, precision, recall, fscore = test_evaluations
+    print("************ Testing Set Performance ************")
     print("MLP Accuracy: " + str(accuracy))
     print("MLP Precision: " + str(precision))
     print("MLP Recall: " + str(recall))

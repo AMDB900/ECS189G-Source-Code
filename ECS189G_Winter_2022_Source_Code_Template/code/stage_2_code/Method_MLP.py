@@ -17,7 +17,7 @@ class Method_MLP(method, nn.Module):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 100
+    max_epoch = 200
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
     hidden_size = 50
@@ -46,7 +46,7 @@ class Method_MLP(method, nn.Module):
 
         self.fc_layer_5 = nn.Linear(self.hidden_size, 10)
         # check here for nn.Softmax doc: https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html
-        self.activation_func_5 = nn.ReLU()
+        self.activation_func_5 = nn.Softmax(dim=1)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -102,8 +102,8 @@ class Method_MLP(method, nn.Module):
 
             if epoch % 5 == 0:
                 accuracy_evaluator.data = {
-                "true_y": y_true.cpu(),
-                "pred_y": y_pred.cpu().max(1)[1],
+                    "true_y": y_true.cpu(),
+                    "pred_y": y_pred.cpu().max(1)[1],
                 }
                 accuracy = accuracy_evaluator.evaluate()
                 print(
@@ -124,8 +124,16 @@ class Method_MLP(method, nn.Module):
         print("--start training...")
         self.train(self.data["train"]["X"], self.data["train"]["y"])
         print("--start testing...")
-        pred_y = self.test(self.data["test"]["X"])
-        return {
-            "pred_y": pred_y.cpu(),
-            "true_y": self.data["test"]["y"],
-        }, self.loss_history
+        pred_y_train = self.test(self.data["train"]["X"])
+        pred_y_test = self.test(self.data["test"]["X"])
+        return (
+            {
+                "pred_y": pred_y_train.cpu(),
+                "true_y": self.data["train"]["y"],
+            },
+            {
+                "pred_y": pred_y_test.cpu(),
+                "true_y": self.data["test"]["y"],
+            },
+            self.loss_history,
+        )

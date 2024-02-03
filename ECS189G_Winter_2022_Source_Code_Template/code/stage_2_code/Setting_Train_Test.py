@@ -11,21 +11,21 @@ import torch
 
 class Setting_Train_Test(setting):
     def load_run_save_evaluate(self):
-        
-
         # load dataset
         loaded_data = self.dataset.load()
 
         # run MethodModule
         self.method.data = loaded_data
-        learned_result, accuracy_history = self.method.run()
+        train_result, test_result, loss_history = self.method.run()
 
         # save raw ResultModule
-        self.result.data = learned_result
+        self.result.data = test_result
         self.result.save()
 
-        self.evaluate.data = learned_result
+        self.evaluate.data = train_result
+        train_evaluations = self.evaluate.evaluate()
 
-        evaluations = self.evaluate.evaluate()
+        self.evaluate.data = test_result
+        test_evaluations = self.evaluate.evaluate()
 
-        return evaluations, accuracy_history
+        return train_evaluations, test_evaluations, loss_history
