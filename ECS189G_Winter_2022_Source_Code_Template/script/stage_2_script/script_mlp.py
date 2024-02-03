@@ -7,53 +7,50 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-# run with 
+# run with
 # python3 -m script.stage_2_script.script_mlp
 
-#---- Multi-Layer Perceptron script ----
+# ---- Multi-Layer Perceptron script ----
 if 1:
-    #---- parameter section -------------------------------
+    # ---- parameter section -------------------------------
     np.random.seed(2)
     torch.manual_seed(2)
-    #------------------------------------------------------
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # ------------------------------------------------------
 
     # ---- objection initialization setction ---------------
-    data_obj = Dataset_Loader('train', '')
-    data_obj.dataset_source_folder_path = 'data/stage_2_data/'
-    data_obj.traindata_source_file_name = 'train.csv'
-    data_obj.testdata_source_file_name = 'test.csv'
+    data_obj = Dataset_Loader("train", "")
+    data_obj.dataset_source_folder_path = "data/stage_2_data/"
+    data_obj.traindata_source_file_name = "train.csv"
+    data_obj.testdata_source_file_name = "test.csv"
 
-    method_obj = Method_MLP('multi-layer perceptron', '')
+    method_obj = Method_MLP("multi-layer perceptron", "").to(device)
 
-    result_obj = Result_Saver('saver', '')
-    result_obj.result_destination_folder_path = 'result/stage_2_result/MLP_'
-    result_obj.result_destination_file_name = 'prediction_result'
+    result_obj = Result_Saver("saver", "")
+    result_obj.result_destination_folder_path = "result/stage_2_result/MLP_"
+    result_obj.result_destination_file_name = "prediction_result"
 
-    setting_obj = Setting_Train_Test('train test sets', '')
+    setting_obj = Setting_Train_Test("train test sets", "")
 
-    evaluate_obj = Evaluate_Accuracy('accuracy', '')
+    evaluate_obj = Evaluate_Accuracy("accuracy", "")
     # ------------------------------------------------------
 
     # ---- running section ---------------------------------
-    print('************ Start ************')
+    print("************ Start ************")
     setting_obj.prepare(data_obj, method_obj, result_obj, evaluate_obj)
     setting_obj.print_setup_summary()
     evaluations, accuracy_history = setting_obj.load_run_save_evaluate()
     accuracy, precision, recall, fscore = evaluations
-    print('************ Overall Performance ************')
-    print('MLP Accuracy: ' + str(accuracy))
-    print('MLP Precision: ' + str(precision))
-    print('MLP Recall: ' + str(recall))
-    print('MLP FScore: ' + str(fscore))
-    print('************ Finish ************')
+    print("************ Overall Performance ************")
+    print("MLP Accuracy: " + str(accuracy))
+    print("MLP Precision: " + str(precision))
+    print("MLP Recall: " + str(recall))
+    print("MLP FScore: " + str(fscore))
+    print("************ Finish ************")
 
     plt.plot(range(len(accuracy_history)), accuracy_history)
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy over Epochs')
-    plt.yticks([x / 100.0 for x in range(0, 100, 5)])
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.title("Loss over Epochs")
     plt.savefig(result_obj.result_destination_folder_path + "learning_graph.png")
     # ------------------------------------------------------
-    
-
-    
