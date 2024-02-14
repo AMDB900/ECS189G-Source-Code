@@ -1,5 +1,5 @@
 from code.stage_3_code.Dataset_Loader import Dataset_Loader
-from code.stage_3_code.Method_ORL import Method_ORL
+from code.stage_3_code.Method_MNIST import Method_MNIST
 from code.stage_2_code.Result_Saver import Result_Saver
 from code.stage_2_code.Setting_Train_Test import Setting_Train_Test
 from code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 # run with
-# python3 -m script.stage_3_script.script_orl
+# python3 -m script.stage_3_script.script_mnist
 
 # ---- Multi-Layer Perceptron script ----
 if 1:
@@ -21,13 +21,13 @@ if 1:
     # ---- objection initialization setction ---------------
     data_obj = Dataset_Loader("train", "")
     data_obj.dataset_source_folder_path = "data/stage_3_data/"
-    data_obj.dataset_source_file_name = "ORL"
+    data_obj.dataset_source_file_name = "MNIST"
     data_obj.cmap = None
 
-    method_obj = Method_ORL("multi-layer perceptron", "").to(device)
+    method_obj = Method_MNIST("multi-layer perceptron", "").to(device)
 
     result_obj = Result_Saver("saver", "")
-    result_obj.result_destination_folder_path = "result/stage_3_result/ORL_"
+    result_obj.result_destination_folder_path = "result/stage_3_result/MNIST_"
     result_obj.result_destination_file_name = "prediction_result"
 
     setting_obj = Setting_Train_Test("train test sets", "")

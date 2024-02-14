@@ -13,12 +13,12 @@ import torch.nn.functional as F
 import numpy as np
 
 
-class Method_ORL(method, nn.Module):
+class Method_MNIST(method, nn.Module):
     data = None
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 40
+    max_epoch = 30
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
 
@@ -34,9 +34,9 @@ class Method_ORL(method, nn.Module):
         self.conv1 = nn.Conv2d(1, 24, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(24, 24, 5)
-        self.fc1 = nn.Linear(12000, 120)
+        self.fc1 = nn.Linear(384, 120)
         self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 40)
+        self.fc3 = nn.Linear(84, 10)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -108,12 +108,10 @@ class Method_ORL(method, nn.Module):
     
     def input_tensor(self, X):
         input_tensor = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
-        input_tensor = input_tensor.permute(0, 3, 1, 2)
-        return input_tensor[:, 0:1, :, :]
+        return input_tensor.view(-1, 1, 28, 28)
     
     def out_tensor(self, y):
-        indexed = [i - 1 for i in y]
-        return torch.tensor(np.array(indexed), device=self.device, dtype=torch.long)
+        return torch.tensor(np.array(y), device=self.device, dtype=torch.long)
 
     def run(self):
         print("method running...")
@@ -125,11 +123,11 @@ class Method_ORL(method, nn.Module):
         return (
             {
                 "pred_y": pred_y_train.cpu(),
-                "true_y": [i - 1 for i in self.data["train"]["label"]],
+                "true_y": self.data["train"]["label"],
             },
             {
                 "pred_y": pred_y_test.cpu(),
-                "true_y": [i - 1 for i in self.data["test"]["label"]],
+                "true_y": self.data["test"]["label"],
             },
             self.loss_history,
         )
