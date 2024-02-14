@@ -24,13 +24,13 @@ if 1:
     data_obj.dataset_source_file_name = "ORL"
     data_obj.cmap = None
 
-    method_obj = Method_ORL("multi-layer perceptron", "").to(device)
+    method_obj = Method_ORL("convolutional nn", "").to(device)
 
     result_obj = Result_Saver("saver", "")
     result_obj.result_destination_folder_path = "result/stage_3_result/ORL_"
     result_obj.result_destination_file_name = "prediction_result"
 
-    setting_obj = Setting_Train_Test("train test sets", "")
+    setting_obj = Setting_Train_Test("pre split", "")
 
     evaluate_obj = Evaluate_Accuracy("accuracy", "")
     # ------------------------------------------------------
