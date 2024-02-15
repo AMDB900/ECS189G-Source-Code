@@ -9,6 +9,7 @@ from code.base_class.method import method
 from code.stage_1_code.Evaluate_Accuracy import Evaluate_Accuracy
 import torch
 from torch import nn
+from torch.utils.data import TensorDataset, DataLoader
 import torch.nn.functional as F
 import numpy as np
 
@@ -18,9 +19,11 @@ class Method_CIFAR(method, nn.Module):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 100
+    max_epoch = 30
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
+
+    batch_size = 500
 
     loss_history = []
 
@@ -31,10 +34,10 @@ class Method_CIFAR(method, nn.Module):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
 
-        self.conv1 = nn.Conv2d(3, 24, 5)
+        self.conv1 = nn.Conv2d(3, 32, 5)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(24, 24, 5)
-        self.fc1 = nn.Linear(600, 120)
+        self.conv2 = nn.Conv2d(32, 32, 5)
+        self.fc1 = nn.Linear(800, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
@@ -64,28 +67,37 @@ class Method_CIFAR(method, nn.Module):
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
         # you can try to split X and y into smaller-sized batches by yourself
-        for epoch in range(
-            self.max_epoch
-        ):  # you can do an early stop if self.max_epoch is too much...
-            # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
-            y_pred = self.forward(
-                self.input_tensor(X)
-            )
-            # convert y to torch.tensor as well
-            y_true = self.out_tensor(y)
-            # calculate the training loss
-            train_loss = loss_function(y_pred, y_true)
+# check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        # check here for the nn.CrossEntropyLoss doc: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
+        loss_function = nn.CrossEntropyLoss()
+        # for training accuracy investigation purpose
+        accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
 
-            # check here for the gradient init doc: https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
-            optimizer.zero_grad()
-            # check here for the loss.backward doc: https://pytorch.org/docs/stable/generated/torch.Tensor.backward.html
-            # do the error backpropagation to calculate the gradients
-            train_loss.backward()
-            # check here for the opti.step doc: https://pytorch.org/docs/stable/optim.html
-            # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
-            optimizer.step()
+        # it will be an iterative gradient updating process
+        # you can try to split X and y into smaller-sized batches by yourself
 
-            self.loss_history.append(train_loss.item())
+        dataset = TensorDataset(self.x_tensor(X), self.y_tensor(y))
+        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
+        for epoch in range(self.max_epoch):  # you can do an early stop if self.max_epoch is too much...
+
+            running_loss = 0.0
+
+            for inputs, y_true in train_loader:
+
+                optimizer.zero_grad()
+
+                y_pred = self.forward(inputs)
+
+                train_loss = loss_function(y_pred, y_true)
+                train_loss.backward()
+
+                optimizer.step()
+
+                running_loss += train_loss.item()
+            
+            self.loss_history.append(running_loss / len(train_loader))
 
             if epoch % 5 == 0 or epoch == self.max_epoch - 1:
                 accuracy_evaluator.data = {
@@ -93,24 +105,26 @@ class Method_CIFAR(method, nn.Module):
                     "pred_y": y_pred.cpu().max(1)[1],
                 }
                 accuracy = accuracy_evaluator.evaluate()
-                print(
-                    "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
-                )
+                print("Epoch:", epoch, "Accuracy:", accuracy, "Loss:", running_loss / len(train_loader))
 
     def test(self, X):
-        # do the testing, and result the result
-        y_pred = self.forward(
-            self.input_tensor(X)
-        )
-        # convert the probability distributions to the corresponding labels
-        # instances will get the labels corresponding to the largest probability
-        return y_pred.max(1)[1]
+        test_loader = DataLoader(self.x_tensor(X), batch_size=1000)
+
+        y_pred_list = []
+        
+        for inputs in test_loader:
+            outputs = self.forward(inputs)
+            y_pred_list.append(outputs.max(1)[1])
+        
+        y_pred = torch.cat(y_pred_list)
+        
+        return y_pred
     
-    def input_tensor(self, X):
+    def x_tensor(self, X):
         input_tensor = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
         return input_tensor.permute(0, 3, 1, 2)
     
-    def out_tensor(self, y):
+    def y_tensor(self, y):
         return torch.tensor(np.array(y), device=self.device, dtype=torch.long)
 
     def run(self):
