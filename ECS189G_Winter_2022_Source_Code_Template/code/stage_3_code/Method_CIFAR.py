@@ -19,7 +19,7 @@ class Method_CIFAR(method, nn.Module):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 30
+    max_epoch = 10
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
 
@@ -34,10 +34,10 @@ class Method_CIFAR(method, nn.Module):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
 
-        self.conv1 = nn.Conv2d(3, 32, 5)
+        self.conv1 = nn.Conv2d(3, 18, 5, padding=3, stride=2)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(32, 32, 5)
-        self.fc1 = nn.Linear(800, 120)
+        self.conv2 = nn.Conv2d(18, 18, 5, padding=3)
+        self.fc1 = nn.Linear(450, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
@@ -78,7 +78,7 @@ class Method_CIFAR(method, nn.Module):
         # you can try to split X and y into smaller-sized batches by yourself
 
         dataset = TensorDataset(self.x_tensor(X), self.y_tensor(y))
-        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(dataset, batch_size=self.batch_size)
 
         for epoch in range(self.max_epoch):  # you can do an early stop if self.max_epoch is too much...
 
