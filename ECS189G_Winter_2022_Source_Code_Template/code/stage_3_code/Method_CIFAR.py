@@ -16,45 +16,36 @@ import numpy as np
 
 class Method_CIFAR(method, nn.Module):
     data = None
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    # it defines the max rounds to train the model
-    max_epoch = 50
-    # it defines the learning rate for gradient descent based optimizer for model learning
-    learning_rate = 1e-3
-
-    batch_size = 500
-
     loss_history = []
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # it defines the the MLP model architecture, e.g.,
-    # how many layers, size of variables in each layer, activation function, etc.
-    # the size of the input/output portal of the model architecture should be consistent with our data input and desired output
+    max_epoch = 150
+    learning_rate = 1e-3
+    batch_size = 10000
+
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
 
-        self.conv1 = nn.Conv2d(3, 6, 5, padding=3, stride=1)
+        self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 6, 5, padding=3)
-        self.fc1 = nn.Linear(486, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    # it defines the forward propagation function for input x
-    # this function will calculate the output layer by layer
+        self.conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, 3, padding=1)
+        self.conv4 = nn.Conv2d(64, 64, 3, padding=1)
+        self.fc1 = nn.Linear(256, 100)
+        self.fc2 = nn.Linear(100, 10)
 
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
+
+        x = self.pool(F.relu(self.conv3(x)))
+        x = self.pool(F.relu(self.conv4(x)))
+
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.softmax(self.fc3(x), dim=1)
+        x = F.log_softmax(self.fc2(x), dim=1)
         return x
-
-    # backward error propagation will be implemented by pytorch automatically
-    # so we don't need to define the error backpropagation function here
 
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
@@ -67,7 +58,7 @@ class Method_CIFAR(method, nn.Module):
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
         # you can try to split X and y into smaller-sized batches by yourself
-# check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
+        # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         # check here for the nn.CrossEntropyLoss doc: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         loss_function = nn.CrossEntropyLoss()
@@ -96,7 +87,7 @@ class Method_CIFAR(method, nn.Module):
                 optimizer.step()
 
                 running_loss += train_loss.item()
-            
+
             self.loss_history.append(running_loss / len(train_loader))
 
             if epoch % 5 == 0 or epoch == self.max_epoch - 1:
@@ -111,19 +102,19 @@ class Method_CIFAR(method, nn.Module):
         test_loader = DataLoader(self.x_tensor(X), batch_size=1000)
 
         y_pred_list = []
-        
+
         for inputs in test_loader:
             outputs = self.forward(inputs)
             y_pred_list.append(outputs.max(1)[1])
-        
+
         y_pred = torch.cat(y_pred_list)
-        
+
         return y_pred
-    
+
     def x_tensor(self, X):
         input_tensor = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
         return input_tensor.permute(0, 3, 1, 2)
-    
+
     def y_tensor(self, y):
         return torch.tensor(np.array(y), device=self.device, dtype=torch.long)
 
