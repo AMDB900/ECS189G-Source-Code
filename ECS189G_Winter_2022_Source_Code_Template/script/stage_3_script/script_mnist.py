@@ -62,6 +62,6 @@ if 1:
     plt.plot(range(len(accuracy_history)), accuracy_history)
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
-    plt.title("Loss over Epochs")
+    plt.title("MNIST Loss over Epochs")
     plt.savefig(result_obj.result_destination_folder_path + "learning_graph.png")
     # ------------------------------------------------------
