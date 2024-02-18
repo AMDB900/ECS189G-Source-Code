@@ -35,9 +35,8 @@ class Method_MNIST(method, nn.Module):
         self.conv1 = nn.Conv2d(1, 24, 5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(24, 24, 5)
-        self.fc1 = nn.Linear(384, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
+        self.fc1 = nn.Linear(384, 84)
+        self.fc2 = nn.Linear(84, 10)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -47,8 +46,7 @@ class Method_MNIST(method, nn.Module):
         x = self.pool(F.relu(self.conv2(x)))
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.log_softmax(self.fc2(x), dim=1)
         return x
 
     # backward error propagation will be implemented by pytorch automatically

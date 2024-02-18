@@ -18,7 +18,7 @@ class Method_ORL(method, nn.Module):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 40
+    max_epoch = 50
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
 
@@ -31,12 +31,11 @@ class Method_ORL(method, nn.Module):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
 
-        self.conv1 = nn.Conv2d(1, 24, 5)
+        self.conv1 = nn.Conv2d(1, 12, 5, padding=2)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(24, 24, 5)
-        self.fc1 = nn.Linear(12000, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 40)
+        self.conv2 = nn.Conv2d(12, 12, 5, padding=2)
+        self.fc1 = nn.Linear(1848, 120)
+        self.fc3 = nn.Linear(120, 40)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -44,10 +43,10 @@ class Method_ORL(method, nn.Module):
     def forward(self, x):
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
+        x = self.pool(F.relu(self.conv2(x)))
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.log_softmax(self.fc3(x),dim=1)
         return x
 
     # backward error propagation will be implemented by pytorch automatically

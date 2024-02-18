@@ -19,7 +19,7 @@ class Method_CIFAR(method, nn.Module):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 10
+    max_epoch = 50
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
 
@@ -34,10 +34,10 @@ class Method_CIFAR(method, nn.Module):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
 
-        self.conv1 = nn.Conv2d(3, 18, 5, padding=3, stride=2)
+        self.conv1 = nn.Conv2d(3, 6, 5, padding=3, stride=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(18, 18, 5, padding=3)
-        self.fc1 = nn.Linear(450, 120)
+        self.conv2 = nn.Conv2d(6, 6, 5, padding=3)
+        self.fc1 = nn.Linear(486, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
 
@@ -50,7 +50,7 @@ class Method_CIFAR(method, nn.Module):
         x = torch.flatten(x, 1) # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.softmax(self.fc3(x), dim=1)
         return x
 
     # backward error propagation will be implemented by pytorch automatically
