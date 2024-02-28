@@ -23,11 +23,15 @@ class Dataset_Loader(dataset):
     def load_data(self, data, labels, directory, label):
         for file in os.listdir(directory):
             with open(os.path.join(directory, file), 'rt') as f:
-                data.append(f.read())
+                for line in f:
+                    line = line.strip('\n')
+                    tokens = word_tokenize(line)
+                    data.append(tokens)
                 labels.append(label)
                 f.close()
 
     def load(self):
+        print('Loading Data. . .')
         self.load_data(self.train_data, self.train_labels, self.train_dataset_source_folder_path + "pos", 1)
         self.load_data(self.train_data, self.train_labels, self.train_dataset_source_folder_path + "neg", 0)
         self.load_data(self.test_data, self.test_labels, self.test_dataset_source_folder_path + "pos", 1)
