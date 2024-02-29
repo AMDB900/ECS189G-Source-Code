@@ -6,6 +6,7 @@ Concrete MethodModule class for a specific learning MethodModule
 # License: TBD
 
 from code.base_class.method import method
+from torch.utils.data import TensorDataset, DataLoader
 from code.stage_1_code.Evaluate_Accuracy import Evaluate_Accuracy
 import torch
 from torch import nn
@@ -80,7 +81,9 @@ class Method_Classification(method, nn.Module):
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
-
+        dataset = TensorDataset(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
+                                torch.tensor(np.array(y), device=self.device, dtype=torch.long))
+        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
         # you can try to split X and y into smaller-sized batches by yourself
@@ -88,16 +91,10 @@ class Method_Classification(method, nn.Module):
             self.max_epoch
         ):  # you can do an early stop if self.max_epoch is too much...
             # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
-            for i in range(0, len(X), self.batch_size):
-                # print(len(X), len(y))
-                x_tensor = torch.tensor(self.data_preprocess(X[i:i+self.batch_size]), device=self.device, dtype=torch.float32)
-                # print(x_tensor.shape)
+            for x_tensor, y_true in train_loader:
                 y_pred = self.forward(
                     x_tensor
                 )
-                # print(y_pred.shape)
-                # convert y to torch.tensor as well
-                y_true = torch.tensor(np.array(y[i:i+self.batch_size]), device=self.device, dtype=torch.long)
                 # print(y_true.shape)
                 # calculate the training loss
                 train_loss = loss_function(y_pred, y_true)
@@ -124,14 +121,17 @@ class Method_Classification(method, nn.Module):
                 )
 
     def test(self, X):
-        # do the testing, and result the result
-        for i in range(0, len(X), self.batch_size):
-            y_pred = self.forward(
-                torch.tensor(self.data_preprocess(X[i:i+self.batch_size]), device=self.device, dtype=torch.float32)
-            )
-        # convert the probability distributions to the corresponding labels
-        # instances will get the labels corresponding to the largest probability
-        return y_pred.max(1)[1]
+        test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32), batch_size=250)
+
+        y_pred_list = []
+
+        for inputs in test_loader:
+            outputs = self.forward(inputs)
+            y_pred_list.append(outputs.max(1)[1])
+
+        y_pred = torch.cat(y_pred_list)
+
+        return y_pred
 
     def run(self):
         print("method running...")
