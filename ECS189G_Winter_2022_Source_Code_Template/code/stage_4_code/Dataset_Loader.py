@@ -2,7 +2,8 @@ from io import TextIOWrapper
 from code.base_class.dataset import dataset
 import os
 import nltk
-
+from nltk import word_tokenize
+from concurrent.futures import ProcessPoolExecutor
 
 
 class Dataset_Loader(dataset):
@@ -20,22 +21,13 @@ class Dataset_Loader(dataset):
         self.data = []
         self.labels = []
 
-    def load_data(self, data, labels, directory, label):
+    def load_data(self, directory, list: list):
         for file in os.listdir(directory):
-            with open(os.path.join(directory, file), 'rt') as f:
-                for line in f:
-                    line = line.strip('\n')
-                    tokens = word_tokenize(line)
-                    data.append(tokens)
-                labels.append(label)
-                f.close()
-
-    def append_tokens(self, f: TextIOWrapper, list: list):
-        line = f.readline()
-        line = line.strip("\n")
-        tokens = nltk.word_tokenize(line)
-        list.append(tokens)
-
+            with open(os.path.join(directory, file), 'rt', encoding='utf-8') as f:
+                line = f.readline()
+                line = line.strip('\n')
+                tokens = word_tokenize(line)
+                list.append(tokens)
     def load(self):
         print("loading data...")
 
@@ -54,24 +46,13 @@ class Dataset_Loader(dataset):
 
         neg_train = []
         pos_train = []
-
-        for file in os.listdir(train_pos_path):
-            with open(train_pos_path + file, "r", encoding="utf8") as f:
-                self.append_tokens(f, pos_train)
-
-        for file in os.listdir(train_neg_path):
-            with open(train_neg_path + file, "r", encoding="utf8") as f:
-                self.append_tokens(f, neg_train)
+        self.load_data(train_neg_path, neg_train)
+        self.load_data(train_pos_path, pos_train)
 
         neg_test = []
         pos_test = []
-        for file in os.listdir(test_pos_path):
-            with open(test_pos_path + file, "r", encoding="utf8") as f:
-                self.append_tokens(f, pos_test)
-
-        for file in os.listdir(test_neg_path):
-            with open(test_neg_path + file, "r", encoding="utf8") as f:
-                self.append_tokens(f, neg_test)
+        self.load_data(test_neg_path, neg_test)
+        self.load_data(train_pos_path, pos_test)
 
         data = {
             "train": {

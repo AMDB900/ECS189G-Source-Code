@@ -1,5 +1,5 @@
 from code.stage_4_code.Dataset_Loader import Dataset_Loader
-from code.stage_4_code.Method_RNN import Method_RNN
+from code.stage_4_code.Method_Classification import Method_Classification
 from code.stage_2_code.Result_Saver import Result_Saver
 from code.stage_2_code.Setting_Train_Test import Setting_Train_Test
 from code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
@@ -25,8 +25,7 @@ if 1:
     data_obj.traindata_neg_source_file_name = "train/neg/"
     data_obj.testdata_pos_source_file_name = "test/pos/"
     data_obj.testdata_neg_source_file_name = "test/neg/"
-
-    method_obj = Method_RNN("recurring neural net", "").to(device)
+    method_obj = Method_Classification("recurring neural net", "").to(device)
 
     result_obj = Result_Saver("saver", "")
     result_obj.result_destination_folder_path = "result/stage_4_result/classifier_"
