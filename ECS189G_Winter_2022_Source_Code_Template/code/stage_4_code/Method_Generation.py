@@ -13,7 +13,7 @@ from torch import nn
 import numpy as np
 import time
 
-class Method_Classification(method, nn.Module):
+class Method_Generation(method, nn.Module):
     data = None
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -24,25 +24,26 @@ class Method_Classification(method, nn.Module):
     hidden_size = 50
     batch_size = 250
     input_size = 50
-    num_layers = 5
+    num_layers = 1
     num_classes = 2
     loss_history = []
 
+    # it defines the the MLP model architecture, e.g.,
+    # how many layers, size of variables in each layer, activation function, etc.
+    # the size of the input/output portal of the model architecture should be consistent with our data input and desired output
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
         self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers)
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
-        self.dropout = nn.Dropout(0.1)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        h0 = torch.zeros(self.num_layers, X.size(1), self.rnn.hidden_size).to(X.device)
+        h0 = torch.zeros(1, X.size(1), self.rnn.hidden_size).to(X.device)
         out, hn = self.rnn(X, h0)
-        out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
 
@@ -69,18 +70,19 @@ class Method_Classification(method, nn.Module):
             X_padded.append(padded_seq + [np.zeros(50)] * (max_len - len(padded_seq)))
         # print(np.array(X_padded).shape)
         return np.array(X_padded)
+    # backward error propagation will be implemented by pytorch automatically
+    # so we don't need to define the error backpropagation function here
 
-    def train(self, X, y):
+
+    def train(self, X):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         # check here for the nn.CrossEntropyLoss doc: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
-        dataset = TensorDataset(
-            torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
-            torch.tensor(np.array(y), device=self.device, dtype=torch.long),
-        )
+        dataset = TensorDataset(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
+                                torch.tensor(np.array(y), device=self.device, dtype=torch.long))
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
@@ -89,31 +91,34 @@ class Method_Classification(method, nn.Module):
             self.max_epoch
         ):  # you can do an early stop if self.max_epoch is too much...
             # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
-            with torch.set_grad_enabled(True):
-                for x_tensor, y_true in train_loader:
-                    y_pred = self.forward(x_tensor)
-                    # print(y_true.shape)
-                    # calculate the training loss
-                    train_loss = loss_function(y_pred, y_true)
+            for x_tensor, y_true in train_loader:
+                y_pred = self.forward(
+                    x_tensor
+                )
+                # print(y_true.shape)
+                # calculate the training loss
+                train_loss = loss_function(y_pred, y_true)
 
-                    # check here for the gradient init doc: https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
-                    optimizer.zero_grad()
-                    # check here for the loss.backward doc: https://pytorch.org/docs/stable/generated/torch.Tensor.backward.html
-                    # do the error backpropagation to calculate the gradients
-                    train_loss.backward()
-                    # check here for the opti.step doc: https://pytorch.org/docs/stable/optim.html
-                    # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
-                    optimizer.step()
+                # check here for the gradient init doc: https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
+                optimizer.zero_grad()
+                # check here for the loss.backward doc: https://pytorch.org/docs/stable/generated/torch.Tensor.backward.html
+                # do the error backpropagation to calculate the gradients
+                train_loss.backward()
+                # check here for the opti.step doc: https://pytorch.org/docs/stable/optim.html
+                # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
+                optimizer.step()
 
-                    self.loss_history.append(train_loss.item())
-            accuracy_evaluator.data = {
-                "true_y": y_true.cpu(),
-                "pred_y": y_pred.cpu().max(1)[1],
-            }
-            accuracy = accuracy_evaluator.evaluate()
-            print(
-                "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
-            )
+                self.loss_history.append(train_loss.item())
+
+            if epoch % 5 == 0:
+                accuracy_evaluator.data = {
+                    "true_y": y_true.cpu(),
+                    "pred_y": y_pred.cpu().max(1)[1],
+                }
+                accuracy = accuracy_evaluator.evaluate()
+                print(
+                    "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
+                )
 
     def test(self, X):
         test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32), batch_size=250)
