@@ -1,8 +1,8 @@
 from code.base_class.dataset import dataset
-import os
-import string
-from nltk import word_tokenize
 import pickle
+# from nltk import word_tokenize
+# import os
+# import string
 
 
 class Dataset_Loader(dataset):
@@ -11,6 +11,15 @@ class Dataset_Loader(dataset):
     train_neg_source_file_name = None
     test_pos_source_file_name = None
     test_neg_source_file_name = None
+
+    # def load_data(self, directory, list: list):
+    #     for file in os.listdir(directory):
+    #         with open(os.path.join(directory, file), 'rt', encoding='utf-8') as f:
+    #             line = f.readline()
+    #             line = line.strip('\n')
+    #             tokens = word_tokenize(line)
+    #             tokens = [word for word in tokens if word not in set(string.punctuation)]
+    #             list.append(tokens)
 
     def load(self):
         print("loading data...")

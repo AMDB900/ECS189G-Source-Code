@@ -17,13 +17,14 @@ class Method_Classification(method, nn.Module):
     data = None
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # it defines the max rounds to train the model
-    max_epoch = 100
-    # it defines the learning rate for gradient descent based optimizer for model learning
+
+    batch_size = 5000
+    max_epoch = 300
     learning_rate = 1e-3
-    hidden_size = 100
-    batch_size = 1000
+
+    hidden_size = 50
     num_layers = 2
+
     loss_history = []
 
     def __init__(self, mName, mDescription):
