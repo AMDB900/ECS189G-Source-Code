@@ -26,7 +26,7 @@ class Method_Generation(method, nn.Module):
     batch_size = 25873
     input_size = 803
     num_layers = 1
-    num_classes = 2
+    num_classes = 803
     loss_history = []
 
     vocabulary = {}
@@ -37,7 +37,9 @@ class Method_Generation(method, nn.Module):
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers)
+        self.rnn = nn.RNN(
+            self.input_size, self.hidden_size, self.num_layers, batch_first=True
+        )
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
 
     # it defines the forward propagation function for input x
@@ -55,7 +57,6 @@ class Method_Generation(method, nn.Module):
         num_words = len(self.vocabulary)
         input_length = len(X[0])
         one_hot_tensor = np.zeros((len(X), input_length, num_words))
-        print(one_hot_tensor.shape)
 
         for i, window in enumerate(X):
             for j, word in enumerate(window):
@@ -83,7 +84,7 @@ class Method_Generation(method, nn.Module):
 
         dataset = TensorDataset(
             torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32),
-            torch.tensor(self.to_one_hot(y), device=self.device, dtype=torch.long),
+            torch.tensor(self.to_one_hot(y), device=self.device, dtype=torch.float32),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
