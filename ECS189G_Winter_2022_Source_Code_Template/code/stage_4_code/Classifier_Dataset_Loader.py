@@ -1,9 +1,7 @@
 from io import TextIOWrapper
 from code.base_class.dataset import dataset
 import os
-import nltk
 from nltk import word_tokenize
-from concurrent.futures import ProcessPoolExecutor
 
 
 class Dataset_Loader(dataset):
@@ -52,7 +50,7 @@ class Dataset_Loader(dataset):
         neg_test = []
         pos_test = []
         self.load_data(test_neg_path, neg_test)
-        self.load_data(train_pos_path, pos_test)
+        self.load_data(test_pos_path, pos_test)
 
         data = {
             "train": {

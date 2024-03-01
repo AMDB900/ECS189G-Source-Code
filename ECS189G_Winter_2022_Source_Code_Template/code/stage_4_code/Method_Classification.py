@@ -11,7 +11,7 @@ from code.stage_1_code.Evaluate_Accuracy import Evaluate_Accuracy
 import torch
 from torch import nn
 import numpy as np
-
+import time
 
 class Method_Classification(method, nn.Module):
     data = None
@@ -24,7 +24,7 @@ class Method_Classification(method, nn.Module):
     hidden_size = 50
     batch_size = 250
     input_size = 50
-    num_layers = 1
+    num_layers = 5
     num_classes = 2
     loss_history = []
 
@@ -134,12 +134,15 @@ class Method_Classification(method, nn.Module):
         return y_pred
 
     def run(self):
+        start = time.perf_counter()
         print("method running...")
         print("--start training...")
         self.train(self.data["train"]["X"], self.data["train"]["y"])
         print("--start testing...")
         pred_y_train = self.test(self.data["train"]["X"])
         pred_y_test = self.test(self.data["test"]["X"])
+        end = time.perf_counter()
+        print((end - start)/60, " minutes elapsed")
         return (
             {
                 "pred_y": pred_y_train.cpu(),
