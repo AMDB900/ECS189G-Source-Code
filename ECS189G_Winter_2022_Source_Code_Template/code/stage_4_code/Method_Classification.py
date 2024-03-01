@@ -28,15 +28,12 @@ class Method_Classification(method, nn.Module):
     num_classes = 2
     loss_history = []
 
-    # it defines the the MLP model architecture, e.g.,
-    # how many layers, size of variables in each layer, activation function, etc.
-    # the size of the input/output portal of the model architecture should be consistent with our data input and desired output
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
         self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers)
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
-        self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
+        # self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -47,32 +44,29 @@ class Method_Classification(method, nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
-    def load_glove(self, glove_file):
-        index = {}
-        with open(glove_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                values = line.split()
-                word = values[0]
-                coefficients = np.asarray(values[1:], dtype='float32')
-                index[word] = coefficients
-        return index
-    # Matches words in the vectors to glove embeddings
-    def data_preprocess(self, X):
-        max_len = max(len(seq) for seq in X)
-        X_padded = []
-        for seq in X:
-            padded_seq = []
-            for token in seq:
-                if token in self.glove_embeddings:
-                    padded_seq.append(self.glove_embeddings[token])
-                else:
-                    padded_seq.append(np.zeros(50))
-            X_padded.append(padded_seq + [np.zeros(50)] * (max_len - len(padded_seq)))
-        # print(np.array(X_padded).shape)
-        return np.array(X_padded)
-    # backward error propagation will be implemented by pytorch automatically
-    # so we don't need to define the error backpropagation function here
-
+    # def load_glove(self, glove_file):
+    #     index = {}
+    #     with open(glove_file, 'r', encoding='utf-8') as f:
+    #         for line in f:
+    #             values = line.split()
+    #             word = values[0]
+    #             coefficients = np.asarray(values[1:], dtype='float32')
+    #             index[word] = coefficients
+    #     return index
+    # # Matches words in the vectors to glove embeddings
+    # def data_preprocess(self, X):
+    #     max_len = max(len(seq) for seq in X)
+    #     X_padded = []
+    #     for seq in X:
+    #         padded_seq = []
+    #         for token in seq:
+    #             if token in self.glove_embeddings:
+    #                 padded_seq.append(self.glove_embeddings[token])
+    #             else:
+    #                 padded_seq.append(np.zeros(50))
+    #         X_padded.append(padded_seq + [np.zeros(50)] * (max_len - len(padded_seq)))
+    #     # print(np.array(X_padded).shape)
+    #     return np.array(X_padded)
 
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
@@ -81,8 +75,10 @@ class Method_Classification(method, nn.Module):
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
-        dataset = TensorDataset(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
-                                torch.tensor(np.array(y), device=self.device, dtype=torch.long))
+        dataset = TensorDataset(
+            torch.tensor(np.array(X), device=self.device, dtype=torch.float32),
+            torch.tensor(np.array(y), device=self.device, dtype=torch.float32),
+        )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch

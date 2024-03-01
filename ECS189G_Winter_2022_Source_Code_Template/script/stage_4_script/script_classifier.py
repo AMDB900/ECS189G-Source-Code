@@ -20,11 +20,13 @@ if 1:
 
     # ---- objection initialization setction ---------------
     data_obj = Dataset_Loader("train", "")
-    data_obj.dataset_source_folder_path = "data/stage_4_data/text_classification/"
-    data_obj.traindata_pos_source_file_name = "train/pos/"
-    data_obj.traindata_neg_source_file_name = "train/neg/"
-    data_obj.testdata_pos_source_file_name = "test/pos/"
-    data_obj.testdata_neg_source_file_name = "test/neg/"
+    data_obj.dataset_source_folder_path = (
+        "data/stage_4_data/text_classification/tokenized/"
+    )
+    data_obj.train_pos_source_file_name = "train_pos.pkl"
+    data_obj.train_neg_source_file_name = "train_neg.pkl"
+    data_obj.test_pos_source_file_name = "test_pos.pkl"
+    data_obj.test_neg_source_file_name = "test_neg.pkl"
     method_obj = Method_Classification("recurring neural net", "").to(device)
 
     result_obj = Result_Saver("saver", "")
