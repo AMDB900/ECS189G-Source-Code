@@ -15,15 +15,14 @@ import time
 
 class Method_Generation(method, nn.Module):
     data = None
-    glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # it defines the max rounds to train the model
+
     batch_size = 2500
     learning_rate = 1e-3
     max_epoch = 250
-    # it defines the learning rate for gradient descent based optimizer for model learning
+
     hidden_size = 200
-    num_layers = 3
+    num_layers = 1
 
     input_size = num_classes = 5264
     loss_history = []
@@ -40,16 +39,15 @@ class Method_Generation(method, nn.Module):
         )
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
 
-    # it defines the forward propagation function for input x
-    # this function will calculate the output layer by layer
-
+    # the vocabulary is a dict of words to indexes to be used in one hot encoding
     def make_vocabulary(self, X):
         vocabulary = set(word for window in X for word in window)
         vocabulary.add('ENDTOKEN')
         return {word: i for i, word in enumerate(vocabulary)}
 
-    # takes a list of lists of words
-    def to_one_hot(self, X):
+    # input: a list of lists of words
+    # output: a 3d tensor of shape (number of samples, number of words, embedding size)
+    def to_one_hot(self, X: list[list[str]]):
         num_words = len(self.vocabulary)
         input_length = len(X[0])
         one_hot_tensor = np.zeros((len(X), input_length, num_words))
@@ -61,9 +59,10 @@ class Method_Generation(method, nn.Module):
                     continue
                 one_hot_tensor[i, j, word_index] = 1
 
-        return one_hot_tensor
+        return torch.tensor(one_hot_tensor, device=self.device, dtype=torch.float32)
 
-    # takes the output of the foward() function of the model
+    # input: the output of the foward() function of the model
+    # output: the string word that the model predicted
     def to_word(self, tensor) -> str:
         word_id = tensor.max(1)[1][0]
         return list(self.vocabulary.keys())[word_id.item()]
@@ -84,8 +83,12 @@ class Method_Generation(method, nn.Module):
         self.vocabulary = self.make_vocabulary(X)
 
         dataset = TensorDataset(
-            torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32),
-            torch.tensor(np.array([self.vocabulary[word[0]] for word in y]), device=self.device, dtype=torch.long),
+            self.to_one_hot(X),
+            torch.tensor(
+                np.array([self.vocabulary[words[0]] for words in y]),
+                device=self.device,
+                dtype=torch.long,
+            ),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -117,32 +120,34 @@ class Method_Generation(method, nn.Module):
 
     # the input is the first n words of the joke, the output should be the whole joke generated
     # basically have the model predict words until it reaches the ENDTOKEN token
-    def test(self, X):
-        window_tensors = torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32)
-        for i, window_tensor in enumerate(window_tensors):
-            if i == 100:
+    def generate(self, words: list[str]) -> str:
+        window_tensor = self.to_one_hot([words])
+        current_token = ""
+        output = " ".join(words)
+        loop = 0
+        while True:
+            loop += 1
+            if loop > 50:
+                output += " [TERMINATED]"
                 break
-            current_token = ""
-            output = " ".join(X[i])
-            loop = 0
-            while True:
-                if loop > 50:
-                    output += " TERMINATED"
-                    break
-                out_tensor = self.forward(window_tensor.unsqueeze(0))
-                current_token = self.to_word(out_tensor)
-                next_tensor = torch.tensor(
-                    self.to_one_hot([[current_token]]),
-                    device=self.device,
-                    dtype=torch.float32,
-                )
-                if current_token == "ENDTOKEN": break
-                output += " " + current_token
-                window_tensor = torch.cat(
-                    (window_tensor[1:], next_tensor[0, :, :]), dim=0
-                )
-                loop += 1
-            print(output)
+
+            model_output = self.forward(window_tensor)
+            current_token = self.to_word(model_output)
+            next_tensor = self.to_one_hot([[current_token]])
+
+            if current_token == "ENDTOKEN":
+                break
+
+            window_tensor = torch.cat((window_tensor[:, 1:, :], next_tensor), dim=1)
+            output += " " + current_token
+        return output
+
+    def test(self, X: list[list[str]]) -> list[str]:
+        generations = []
+        for starter in X:
+            output = self.generate(starter)
+            generations.append(output)
+        return generations
 
     def run(self):
         start = time.perf_counter()
@@ -150,10 +155,10 @@ class Method_Generation(method, nn.Module):
         print("--start training...")
         self.train(self.data["train"]["X"], self.data["train"]["y"])
         print("--start testing...")
-        self.test(self.data["test"]["X"])
+        pred_y_test = self.test(self.data["test"]["X"])
         end = time.perf_counter()
         print((end - start)/60, " minutes elapsed")
         return (
-            self,
+            pred_y_test,
             self.loss_history,
         )
