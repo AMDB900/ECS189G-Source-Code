@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 # run with
-# python3 -m script.stage_4_script.script_classifier
+# python3 -m script.stage_4_script.script_generation
 
 # ---- recurring neural net script ----
 if 1:
@@ -21,11 +21,11 @@ if 1:
     # ---- objection initialization setction ---------------
     data_obj = Dataset_Loader("train", "")
     data_obj.dataset_source_folder_path = "data/stage_4_data/text_generation/"
-    data_obj.data_file_name = "data"
+    data_obj.data_source_file_name = "data"
     method_obj = Method_Generation("recurring neural net", "").to(device)
 
     result_obj = Result_Saver("saver", "")
-    result_obj.result_destination_folder_path = "result/stage_4_result/classifier_"
+    result_obj.result_destination_folder_path = "result/stage_4_result/generator_"
     result_obj.result_destination_file_name = "prediction_result"
 
     setting_obj = Setting_Train_Test("train test sets", "")
