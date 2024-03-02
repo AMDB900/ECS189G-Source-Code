@@ -21,9 +21,9 @@ class Method_Classification(method, nn.Module):
     max_epoch = 100
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
-    hidden_size = 100
-    batch_size = 1000
-    num_layers = 2
+    hidden_size = 50
+    batch_size = 1250
+    num_layers = 3
     loss_history = []
 
     def __init__(self, mName, mDescription):
@@ -31,21 +31,17 @@ class Method_Classification(method, nn.Module):
         nn.Module.__init__(self)
         self.rnn = nn.RNN(50, self.hidden_size, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, 2)
-        # self.dropout = nn.Dropout(0.1)
+        self.dropout = nn.Dropout(0.1)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        # h0 = torch.zeros(self.num_layers, X.size(1), self.rnn.hidden_size).to(X.device)
         out, _ = self.rnn(X)
-        # out = self.dropout(out)
+        out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
-    def init_hidden(self, batch_size):
-        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device).requires_grad_()
-        return hidden
     def load_glove(self, glove_file):
         index = {}
         with open(glove_file, 'r', encoding='utf-8') as f:
