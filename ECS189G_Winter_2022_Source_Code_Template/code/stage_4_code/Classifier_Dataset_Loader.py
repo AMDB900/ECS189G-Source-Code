@@ -50,7 +50,5 @@ class Dataset_Loader(dataset):
                 "y": [0] * len(neg_test) + [1] * len(pos_test),
             },
         }
-        print(data["test"]["X"][0])
-        print(data["test"]["y"][0])
 
         return data

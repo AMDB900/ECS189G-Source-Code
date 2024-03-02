@@ -18,30 +18,29 @@ class Method_Classification(method, nn.Module):
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 5
+    max_epoch = 100
     # it defines the learning rate for gradient descent based optimizer for model learning
-    learning_rate = 1e-5
+    learning_rate = 1e-3
     hidden_size = 100
-    batch_size = 200
-    input_size = 50
-    num_classes = 2
-    num_layers = 1
+    batch_size = 1000
+    num_layers = 2
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers)
-        self.fc = nn.Linear(self.hidden_size, self.num_classes)
+        self.rnn = nn.RNN(50, self.hidden_size, self.num_layers, batch_first=True)
+        self.fc = nn.Linear(self.hidden_size, 2)
+        # self.dropout = nn.Dropout(0.1)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        batch_size = X.shape[1]
-        hidden = self.init_hidden(batch_size)
-        out, hidden = self.rnn(X, hidden)
+        # h0 = torch.zeros(self.num_layers, X.size(1), self.rnn.hidden_size).to(X.device)
+        out, _ = self.rnn(X)
+        # out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
     def init_hidden(self, batch_size):
@@ -58,19 +57,21 @@ class Method_Classification(method, nn.Module):
         return index
     # Matches words in the vectors to glove embeddings
     def data_preprocess(self, X):
-        max_len = max(len(seq) for seq in X)
-        X_padded = []
-        for seq in X:
-            padded_seq = []
-            for token in seq:
-                if token in self.glove_embeddings:
-                    padded_seq.append(self.glove_embeddings[token])
-                else:
-                    random_value = np.random.rand(50)
-                    self.glove_embeddings[token] = random_value
-                    padded_seq.append(random_value)
-            X_padded.append(padded_seq + [np.zeros(50)] * (max_len - len(padded_seq)))
-        return np.array(X_padded)
+        embedding_length = 50
+        max_review_length = 50
+        tensor = np.zeros((len(X), max_review_length, embedding_length))
+
+        for i, review in enumerate(X):
+            for j, word in enumerate(review):
+                if j == max_review_length:
+                    break
+                if word not in self.glove_embeddings:
+                    continue
+                embedding = self.glove_embeddings.get(word)
+
+                tensor[i, j, :] = embedding
+
+        return tensor
 
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
@@ -84,41 +85,32 @@ class Method_Classification(method, nn.Module):
             torch.tensor(np.array(y), device=self.device, dtype=torch.long),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        # it will be an iterative gradient updating process
-        # we don't do mini-batch, we use the whole input as one batch
-        # you can try to split X and y into smaller-sized batches by yourself
 
-        for epoch in range(self.max_epoch):  # you can do an early stop if self.max_epoch is too much...
-            # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
-            all_y_true = []
-            all_y_pred = []
-            with torch.set_grad_enabled(True):
-                for x_tensor, y_true in train_loader:
-                    y_pred = self.forward(x_tensor)
-                    # print(y_true.shape)
-                    # calculate the training loss
-                    train_loss = loss_function(y_pred, y_true)
+        for epoch in range(self.max_epoch):
+            running_loss = 0.0
+            for inputs, y_true in train_loader:
+                optimizer.zero_grad()
+                y_pred = self.forward(inputs)
+                train_loss = loss_function(y_pred, y_true)
+                train_loss.backward()
+                optimizer.step()
+                running_loss += train_loss.item()
 
-                    # check here for the gradient init doc: https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
-                    optimizer.zero_grad()
-                    # check here for the loss.backward doc: https://pytorch.org/docs/stable/generated/torch.Tensor.backward.html
-                    # do the error backpropagation to calculate the gradients
-                    train_loss.backward()
-                    # check here for the opti.step doc: https://pytorch.org/docs/stable/optim.html
-                    # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
-                    optimizer.step()
-                    all_y_pred.extend(y_pred.cpu().detach())
-                    all_y_true.extend(y_true.cpu().detach())
-                    self.loss_history.append(train_loss.item())
-            all_y_pred_tensor = torch.stack(all_y_pred)
-            accuracy_evaluator.data = {
-                "true_y": all_y_true,
-                "pred_y": all_y_pred_tensor.max(1)[1],
-            }
-            accuracy = accuracy_evaluator.evaluate()
-            print(
-                "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
-            )
+            self.loss_history.append(running_loss / len(train_loader))
+            if epoch % 5 == 0 or epoch == self.max_epoch - 1:
+                accuracy_evaluator.data = {
+                    "true_y": y_true.cpu(),
+                    "pred_y": y_pred.cpu().max(1)[1],
+                }
+                accuracy = accuracy_evaluator.evaluate()
+                print(
+                    "Epoch:",
+                    epoch,
+                    "Accuracy:",
+                    accuracy,
+                    "Loss:",
+                    running_loss / len(train_loader),
+                )
 
     def test(self, X):
         test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32), batch_size=250)
