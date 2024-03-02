@@ -18,15 +18,15 @@ class Method_Generation(method, nn.Module):
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 50
-    # it defines the learning rate for gradient descent based optimizer for model learning
+    batch_size = 2500
     learning_rate = 1e-3
-    hidden_size = 25
-    batch_size = 500
-    input_size = num_classes = 5264
+    max_epoch = 250
+    # it defines the learning rate for gradient descent based optimizer for model learning
+    hidden_size = 200
     num_layers = 1
-    loss_history = []
 
+    input_size = num_classes = 5264
+    loss_history = []
     vocabulary = {}
 
     # it defines the the MLP model architecture, e.g.,
@@ -48,6 +48,7 @@ class Method_Generation(method, nn.Module):
         vocabulary.add('ENDTOKEN')
         return {word: i for i, word in enumerate(vocabulary)}
 
+    # takes a list of lists of words
     def to_one_hot(self, X):
         num_words = len(self.vocabulary)
         input_length = len(X[0])
@@ -61,9 +62,9 @@ class Method_Generation(method, nn.Module):
                 one_hot_tensor[i, j, word_index] = 1
 
         return one_hot_tensor
-    
+
     # takes the output of the foward() function of the model
-    def to_word(self, tensor):
+    def to_word(self, tensor) -> str:
         word_id = tensor.max(1)[1][0]
         return list(self.vocabulary.keys())[word_id.item()]
 
@@ -124,17 +125,23 @@ class Method_Generation(method, nn.Module):
             output = " ".join(X[i])
             loop = 0
             while True:
-                if loop > 1000:
+                if loop > 100:
                     print("took too long")
                     break
                 out_tensor = self.forward(window_tensor.unsqueeze(0))
                 current_token = self.to_word(out_tensor)
+                next_tensor = torch.tensor(
+                    self.to_one_hot([[current_token]]),
+                    device=self.device,
+                    dtype=torch.float32,
+                )
                 if current_token == "ENDTOKEN": break
                 output += " " + current_token
-                window_tensor = torch.cat((window_tensor[1:], out_tensor), dim=0)
+                window_tensor = torch.cat(
+                    (window_tensor[1:], next_tensor[0, :, :]), dim=0
+                )
                 loop += 1
             print(output)
-
 
     def run(self):
         start = time.perf_counter()
