@@ -12,12 +12,13 @@ import torch
 from torch import nn
 import numpy as np
 import time
+import pickle
 
 class Method_Generation(method, nn.Module):
     data = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 2500
+    batch_size = 5000
     learning_rate = 1e-3
     max_epoch = 250
 
@@ -34,16 +35,28 @@ class Method_Generation(method, nn.Module):
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
+
+        with open("data/stage_4_data/text_generation/vocabulary.pkl", "rb") as f:
+            self.vocabulary = pickle.load(f)
+
         self.rnn = nn.RNN(
             self.input_size, self.hidden_size, self.num_layers, batch_first=True
         )
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
 
+    def forward(self, X):
+        out, _ = self.rnn(X)
+        out = self.fc(out[:, -1, :])
+        return out
+
     # the vocabulary is a dict of words to indexes to be used in one hot encoding
-    def make_vocabulary(self, X):
-        vocabulary = set(word for window in X for word in window)
-        vocabulary.add('ENDTOKEN')
-        return {word: i for i, word in enumerate(vocabulary)}
+    # def make_vocabulary(self, X):
+    #     word_set = set(word for window in X for word in window)
+    #     word_set.add("ENDTOKEN")
+    #     vocabulary = {word: i for i, word in enumerate(word_set)}
+    #     with open("data/stage_4_data/text_generation/vocabulary.pkl", "wb") as f:
+    #         pickle.dump(vocabulary, f)
+    #     return vocabulary
 
     # input: a list of lists of words
     # output: a 3d tensor of shape (number of samples, number of words, embedding size)
@@ -67,11 +80,6 @@ class Method_Generation(method, nn.Module):
         word_id = tensor.max(1)[1][0]
         return list(self.vocabulary.keys())[word_id.item()]
 
-    def forward(self, X):
-        out, _ = self.rnn(X)
-        out = self.fc(out[:, -1, :])
-        return out
-
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -80,8 +88,7 @@ class Method_Generation(method, nn.Module):
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
 
-        self.vocabulary = self.make_vocabulary(X)
-
+        # self.vocabulary = self.make_vocabulary(X)
         dataset = TensorDataset(
             self.to_one_hot(X),
             torch.tensor(
