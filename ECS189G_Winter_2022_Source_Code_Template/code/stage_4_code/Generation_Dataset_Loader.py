@@ -15,6 +15,7 @@ class Dataset_Loader(dataset):
     data_source_file_name = None
 
     num_inputs = 3
+    num_outputs = 1
 
     def load(self):
         print('loading data...')
@@ -34,12 +35,11 @@ class Dataset_Loader(dataset):
                 tokens = word_tokenize(row[1])
                 tokens.append("ENDTOKEN")
                 for i in range(0, len(tokens) - self.num_inputs):
-                    if i == 0 and row[0] == "2":
-                        print(X_train)
-                        print(y_train)
                     X_train.append(tokens[i : i + self.num_inputs])
                     y_train.append(
-                        tokens[i + self.num_inputs : i + self.num_inputs + 1]
+                        tokens[
+                            i + self.num_inputs : i + self.num_inputs + self.num_outputs
+                        ]
                     )
                     if i == 0:
                         X_test.append(tokens[i : i + self.num_inputs])

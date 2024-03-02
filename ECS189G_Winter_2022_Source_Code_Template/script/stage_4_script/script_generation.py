@@ -1,7 +1,7 @@
 from code.stage_4_code.Generation_Dataset_Loader import Dataset_Loader
 from code.stage_4_code.Method_Generation import Method_Generation
 from code.stage_2_code.Result_Saver import Result_Saver
-from code.stage_2_code.Setting_Train_Test import Setting_Train_Test
+from code.stage_4_code.Setting_Train_Test import Setting_Train_Test
 from code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
 import numpy as np
 import torch
@@ -37,23 +37,12 @@ if 1:
     print("************ Start ************")
     setting_obj.prepare(data_obj, method_obj, result_obj, evaluate_obj)
     setting_obj.print_setup_summary()
-    (
-        train_evaluations,
-        test_evaluations,
-        accuracy_history,
-    ) = setting_obj.load_run_save_evaluate()
-    accuracy, precision, recall, fscore = train_evaluations
-    print("************ Training Set Performance ************")
-    print("RNN Accuracy: " + str(accuracy))
-    print("RNN Precision: " + str(precision))
-    print("RNN Recall: " + str(recall))
-    print("RNN FScore: " + str(fscore))
-    accuracy, precision, recall, fscore = test_evaluations
-    print("************ Testing Set Performance ************")
-    print("RNN Accuracy: " + str(accuracy))
-    print("RNN Precision: " + str(precision))
-    print("RNN Recall: " + str(recall))
-    print("RNN FScore: " + str(fscore))
+
+    test_generations, accuracy_history = setting_obj.load_run_save_evaluate()
+    print("************ Sample Generations ************")
+    for sentence in test_generations[:100]:
+        print(sentence)
+
     print("************ Finish ************")
 
     plt.plot(range(len(accuracy_history)), accuracy_history)
