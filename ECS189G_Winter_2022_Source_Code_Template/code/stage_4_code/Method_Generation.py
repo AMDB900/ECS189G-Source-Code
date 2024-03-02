@@ -12,7 +12,6 @@ import torch
 from torch import nn
 import numpy as np
 import time
-from collections import Counter
 
 class Method_Generation(method, nn.Module):
     data = None
@@ -22,11 +21,10 @@ class Method_Generation(method, nn.Module):
     max_epoch = 50
     # it defines the learning rate for gradient descent based optimizer for model learning
     learning_rate = 1e-3
-    hidden_size = 50
-    batch_size = 25873
-    input_size = 803
-    num_layers = 3
-    num_classes = 803
+    hidden_size = 25
+    batch_size = 500
+    input_size = num_classes = 5264
+    num_layers = 1
     loss_history = []
     end_token = "ENDCHAR"
 
@@ -47,11 +45,8 @@ class Method_Generation(method, nn.Module):
     # this function will calculate the output layer by layer
 
     def make_vocabulary(self, X):
-        word_counts = Counter(word for window in X for word in window)
-        min_word_frequency = 10
-        vocabulary = [
-            word for word, count in word_counts.items() if count >= min_word_frequency
-        ]
+        vocabulary = set(word for window in X for word in window)
+        vocabulary.add('ENDTOKEN')
         return {word: i for i, word in enumerate(vocabulary)}
 
     def to_one_hot(self, X):
@@ -67,6 +62,11 @@ class Method_Generation(method, nn.Module):
                 one_hot_tensor[i, j, word_index] = 1
 
         return one_hot_tensor
+    
+    # takes the output of the foward() function of the model
+    def to_word(self, tensor):
+        word_id = tensor.max(1)[1][0]
+        return list(self.vocabulary.keys())[word_id.item()]
 
     def forward(self, X):
         out, _ = self.rnn(X)
@@ -85,7 +85,7 @@ class Method_Generation(method, nn.Module):
 
         dataset = TensorDataset(
             torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32),
-            torch.tensor(self.to_one_hot(y), device=self.device, dtype=torch.float32),
+            torch.tensor(np.array([self.vocabulary[word[0]] for word in y]), device=self.device, dtype=torch.long),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
 
@@ -116,11 +116,26 @@ class Method_Generation(method, nn.Module):
                 )
 
     # the input is the first n words of the joke, the output should be the whole joke generated
-    # basically have the model predict words until it reaches the endchar token
+    # basically have the model predict words until it reaches the ENDTOKEN token
     def test(self, X):
-        sentence = None
-        current_word = None
-        while (current_word != self.end_token):
+        window_tensors = torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32)
+        for i, window_tensor in enumerate(window_tensors):
+            if i == 5: break
+            current_token = ""
+            output = " ".join(X[i])
+            loop = 0
+            while True:
+                if loop > 1000:
+                    print("took too long")
+                    break
+                out_tensor = self.forward(window_tensor.unsqueeze(0))
+                current_token = self.to_word(out_tensor)
+                if current_token == "ENDTOKEN": break
+                output += " " + current_token
+                window_tensor = torch.cat((window_tensor[1:], out_tensor), dim=0)
+                loop += 1
+            print(output)
+
 
     def run(self):
         start = time.perf_counter()

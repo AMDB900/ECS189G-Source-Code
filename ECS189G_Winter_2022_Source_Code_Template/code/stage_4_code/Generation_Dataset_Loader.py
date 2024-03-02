@@ -32,7 +32,7 @@ class Dataset_Loader(dataset):
                 if row[0] == "ID":
                     continue
                 tokens = word_tokenize(row[1])
-                tokens.append("ENDCHAR")
+                tokens.append("ENDTOKEN")
                 for i in range(0, len(tokens) - self.num_inputs):
                     if i == 0 and row[0] == "2":
                         print(X_train)
