@@ -25,9 +25,10 @@ class Method_Generation(method, nn.Module):
     hidden_size = 50
     batch_size = 25873
     input_size = 803
-    num_layers = 1
+    num_layers = 3
     num_classes = 803
     loss_history = []
+    end_token = "ENDCHAR"
 
     vocabulary = {}
 
@@ -117,7 +118,9 @@ class Method_Generation(method, nn.Module):
     # the input is the first n words of the joke, the output should be the whole joke generated
     # basically have the model predict words until it reaches the endchar token
     def test(self, X):
-        pass
+        sentence = None
+        current_word = None
+        while (current_word != self.end_token):
 
     def run(self):
         start = time.perf_counter()
