@@ -18,14 +18,14 @@ class Method_Classification(method, nn.Module):
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # it defines the max rounds to train the model
-    max_epoch = 50
+    max_epoch = 5
     # it defines the learning rate for gradient descent based optimizer for model learning
-    learning_rate = 1e-3
-    hidden_size = 50
-    batch_size = 250
+    learning_rate = 1e-5
+    hidden_size = 100
+    batch_size = 200
     input_size = 50
-    num_layers = 5
     num_classes = 2
+    num_layers = 1
     loss_history = []
 
     def __init__(self, mName, mDescription):
@@ -33,19 +33,20 @@ class Method_Classification(method, nn.Module):
         nn.Module.__init__(self)
         self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers)
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
-        self.dropout = nn.Dropout(0.1)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        h0 = torch.zeros(self.num_layers, X.size(1), self.rnn.hidden_size).to(X.device)
-        out, hn = self.rnn(X, h0)
-        out = self.dropout(out)
+        batch_size = X.shape[1]
+        hidden = self.init_hidden(batch_size)
+        out, hidden = self.rnn(X, hidden)
         out = self.fc(out[:, -1, :])
         return out
-
+    def init_hidden(self, batch_size):
+        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device).requires_grad_()
+        return hidden
     def load_glove(self, glove_file):
         index = {}
         with open(glove_file, 'r', encoding='utf-8') as f:
@@ -65,9 +66,10 @@ class Method_Classification(method, nn.Module):
                 if token in self.glove_embeddings:
                     padded_seq.append(self.glove_embeddings[token])
                 else:
-                    padded_seq.append(np.zeros(50))
+                    random_value = np.random.rand(50)
+                    self.glove_embeddings[token] = random_value
+                    padded_seq.append(random_value)
             X_padded.append(padded_seq + [np.zeros(50)] * (max_len - len(padded_seq)))
-        # print(np.array(X_padded).shape)
         return np.array(X_padded)
 
     def train(self, X, y):
@@ -85,10 +87,11 @@ class Method_Classification(method, nn.Module):
         # it will be an iterative gradient updating process
         # we don't do mini-batch, we use the whole input as one batch
         # you can try to split X and y into smaller-sized batches by yourself
-        for epoch in range(
-            self.max_epoch
-        ):  # you can do an early stop if self.max_epoch is too much...
+
+        for epoch in range(self.max_epoch):  # you can do an early stop if self.max_epoch is too much...
             # get the output, we need to covert X into torch.tensor so pytorch algorithm can operate on it
+            all_y_true = []
+            all_y_pred = []
             with torch.set_grad_enabled(True):
                 for x_tensor, y_true in train_loader:
                     y_pred = self.forward(x_tensor)
@@ -104,11 +107,13 @@ class Method_Classification(method, nn.Module):
                     # check here for the opti.step doc: https://pytorch.org/docs/stable/optim.html
                     # update the variables according to the optimizer and the gradients calculated by the above loss.backward function
                     optimizer.step()
-
+                    all_y_pred.extend(y_pred.cpu().detach())
+                    all_y_true.extend(y_true.cpu().detach())
                     self.loss_history.append(train_loss.item())
+            all_y_pred_tensor = torch.stack(all_y_pred)
             accuracy_evaluator.data = {
-                "true_y": y_true.cpu(),
-                "pred_y": y_pred.cpu().max(1)[1],
+                "true_y": all_y_true,
+                "pred_y": all_y_pred_tensor.max(1)[1],
             }
             accuracy = accuracy_evaluator.evaluate()
             print(
