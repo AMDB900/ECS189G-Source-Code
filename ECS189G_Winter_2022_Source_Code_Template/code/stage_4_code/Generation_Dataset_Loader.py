@@ -24,6 +24,7 @@ class Dataset_Loader(dataset):
             for line in f:
                 line = line.strip('\n')
                 tokens = word_tokenize(line)
+                tokens.append('[endtoken]')
                 X_train.append(tokens)
 
         return {'train': {'X': X_train}}
