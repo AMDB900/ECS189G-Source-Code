@@ -23,7 +23,7 @@ class Method_Generation(method, nn.Module):
     max_epoch = 250
     # it defines the learning rate for gradient descent based optimizer for model learning
     hidden_size = 200
-    num_layers = 1
+    num_layers = 3
 
     input_size = num_classes = 5264
     loss_history = []
@@ -120,13 +120,14 @@ class Method_Generation(method, nn.Module):
     def test(self, X):
         window_tensors = torch.tensor(self.to_one_hot(X), device=self.device, dtype=torch.float32)
         for i, window_tensor in enumerate(window_tensors):
-            if i == 5: break
+            if i == 100:
+                break
             current_token = ""
             output = " ".join(X[i])
             loop = 0
             while True:
-                if loop > 100:
-                    print("took too long")
+                if loop > 50:
+                    output += " TERMINATED"
                     break
                 out_tensor = self.forward(window_tensor.unsqueeze(0))
                 current_token = self.to_word(out_tensor)
