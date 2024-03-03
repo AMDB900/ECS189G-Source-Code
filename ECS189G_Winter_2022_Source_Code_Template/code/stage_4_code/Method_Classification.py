@@ -19,29 +19,31 @@ class Method_Classification(method, nn.Module):
     data = None
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    input_size = 50
-    batch_size = 12500
-    max_epoch = 200
+
+    batch_size = 5000
+    max_epoch = 600
     learning_rate = 1e-3
-    weight_decay = 1e-3
-    hidden_size = 200
-    num_layers = 1
+
+    hidden_size = 64
+    num_layers = 2
+    dropout_rate = 0.1
+    weight_decay = 8e-4
+
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.RNN(self.input_size, self.hidden_size, self.num_layers, batch_first=True)
-        self.fc = nn.Linear(self.hidden_size, 2, bias=False)
-        self.dropout = nn.Dropout(0.3)
+        self.rnn = nn.RNN(50, self.hidden_size, self.num_layers, batch_first=True)
+        self.fc = nn.Linear(self.hidden_size, 2)
+        self.dropout = nn.Dropout(self.dropout_rate)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
         # self.gensim_model = None
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        h0 = torch.zeros(self.num_layers, X.size(0), self.hidden_size).to(self.device)
-        out, _ = self.rnn(X, h0)
+        out, _ = self.rnn(X)
         out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
@@ -87,7 +89,9 @@ class Method_Classification(method, nn.Module):
 
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
         # check here for the nn.CrossEntropyLoss doc: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
@@ -124,6 +128,8 @@ class Method_Classification(method, nn.Module):
                     "Loss:",
                     running_loss / len(train_loader),
                 )
+            if accuracy > 0.82:
+                break
 
     def test(self, X):
         test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),

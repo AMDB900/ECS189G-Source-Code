@@ -40,7 +40,9 @@ if 1:
 
     test_generations, accuracy_history = setting_obj.load_run_save_evaluate()
     print("************ Sample Generations ************")
-    for sentence in test_generations[:100]:
+    # print(len(test_generations))
+    # theres 845 ways to start the joke in 3 words
+    for sentence in test_generations[:250]:
         print(sentence)
 
     print("************ Finish ************")
