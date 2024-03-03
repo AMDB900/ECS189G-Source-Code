@@ -20,7 +20,7 @@ class Method_Generation(method, nn.Module):
 
     batch_size = 5000
     learning_rate = 1e-3
-    max_epoch = 250
+    max_epoch = 300
 
     hidden_size = 200
     num_layers = 1
@@ -45,7 +45,8 @@ class Method_Generation(method, nn.Module):
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
 
     def forward(self, X):
-        out, _ = self.rnn(X)
+        h0 = torch.randn(self.num_layers, self.batch_size, self.hidden_size).to(self.device)
+        out, _ = self.rnn(X, h0)
         out = self.fc(out[:, -1, :])
         return out
 
