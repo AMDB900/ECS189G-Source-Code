@@ -14,8 +14,28 @@ class Dataset_Loader(dataset):
     dataset_source_folder_path = None
     data_source_file_name = None
 
-    num_inputs = 3
-    num_outputs = 1
+    num_in = 3
+    num_out = 1
+    bad_tokens = [
+        "*",
+        "-",
+        "^",
+        "=",
+        '"',
+        "[",
+        "]",
+        "/",
+        "``",
+        "''",
+        "&",
+        "'",
+        "(",
+        ")",
+        "..",
+        "...",
+        "....",
+        ".....",
+    ]
 
     def load(self):
         print('loading data...')
@@ -33,15 +53,16 @@ class Dataset_Loader(dataset):
                 if row[0] == "ID":
                     continue
                 tokens = word_tokenize(row[1])
+                tokens = [token for token in tokens if token not in self.bad_tokens]
                 tokens.append("ENDTOKEN")
-                for i in range(0, len(tokens) - self.num_inputs):
-                    X_train.append(tokens[i : i + self.num_inputs])
+                for i in range(0, len(tokens) - self.num_in):
+                    X_train.append(tuple(tokens[i : i + self.num_in]))
                     y_train.append(
-                        tokens[
-                            i + self.num_inputs : i + self.num_inputs + self.num_outputs
-                        ]
+                        tuple(tokens[i + self.num_in : i + self.num_in + self.num_out])
                     )
                     if i == 0:
-                        X_test.append(tokens[i : i + self.num_inputs])
+                        X_test.append(tuple(tokens[i : i + self.num_in]))
+
+        X_test = list(set(X_test))
 
         return {"train": {"X": X_train, "y": y_train}, "test": {"X": X_test}}

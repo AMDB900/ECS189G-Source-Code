@@ -18,9 +18,9 @@ class Method_Generation(method, nn.Module):
     data = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 5000
+    batch_size = 12500
     learning_rate = 1e-3
-    max_epoch = 250
+    max_epoch = 500
 
     hidden_size = 200
     num_layers = 1
@@ -58,9 +58,9 @@ class Method_Generation(method, nn.Module):
     #         pickle.dump(vocabulary, f)
     #     return vocabulary
 
-    # input: a list of lists of words
+    # input: a list of tuples of words
     # output: a 3d tensor of shape (number of samples, number of words, embedding size)
-    def to_one_hot(self, X: list[list[str]]):
+    def to_one_hot(self, X: list[tuple[str]]):
         num_words = len(self.vocabulary)
         input_length = len(X[0])
         one_hot_tensor = np.zeros((len(X), input_length, num_words))
@@ -127,14 +127,11 @@ class Method_Generation(method, nn.Module):
 
     # the input is the first n words of the joke, the output should be the whole joke generated
     # basically have the model predict words until it reaches the ENDTOKEN token
-    def generate(self, words: list[str]) -> str:
+    def generate(self, words: tuple[str]) -> str:
         window_tensor = self.to_one_hot([words])
-        current_token = ""
         output = " ".join(words)
-        loop = 0
         while True:
-            loop += 1
-            if loop > 50:
+            if len(output) > 250:
                 output += " [TERMINATED]"
                 break
 
@@ -149,7 +146,7 @@ class Method_Generation(method, nn.Module):
             output += " " + current_token
         return output
 
-    def test(self, X: list[list[str]]) -> list[str]:
+    def test(self, X: list[tuple[str]]) -> list[str]:
         generations = []
         for starter in X:
             output = self.generate(starter)
