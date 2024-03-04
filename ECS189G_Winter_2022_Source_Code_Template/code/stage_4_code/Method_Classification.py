@@ -21,14 +21,15 @@ class Method_Classification(method, nn.Module):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     batch_size = 5000
-    max_epoch = 800
+    max_epoch = 750
     learning_rate = 1e-3
+
     max_review_length = 100
-    hidden_size = 50
+    hidden_size = 35
     num_layers = 5
-    dropout_rate = 0.05
-    weight_decay = 1e-5
-    input_size = 50
+    dropout_rate = 0  # 0.1
+    weight_decay = 0  # 8e-4
+
     loss_history = []
 
     def __init__(self, mName, mDescription):
@@ -60,13 +61,12 @@ class Method_Classification(method, nn.Module):
         return index
     # Matches words in the vectors to glove embeddings
     def data_preprocess(self, X):
-        embedding_length = self.input_size
-        max_review_length = self.max_review_length
-        tensor = np.zeros((len(X), max_review_length, embedding_length))
+        embedding_length = 50
+        tensor = np.zeros((len(X), self.max_review_length, embedding_length))
 
         for i, review in enumerate(X):
             for j, word in enumerate(review):
-                if j == max_review_length:
+                if j == self.max_review_length:
                     break
                 if word not in self.glove_embeddings:
                     continue
