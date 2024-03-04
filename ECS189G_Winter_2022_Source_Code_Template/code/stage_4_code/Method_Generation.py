@@ -45,7 +45,7 @@ class Method_Generation(method, nn.Module):
         self.fc = nn.Linear(self.hidden_size, self.num_classes)
 
     def forward(self, X):
-        h0 = torch.randn(self.num_layers, self.batch_size, self.hidden_size).to(self.device)
+        h0 = torch.randn(self.num_layers, X.size(0), self.hidden_size).to(self.device)
         out, _ = self.rnn(X, h0)
         out = self.fc(out[:, -1, :])
         return out

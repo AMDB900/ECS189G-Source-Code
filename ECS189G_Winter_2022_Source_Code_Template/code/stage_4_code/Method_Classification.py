@@ -21,20 +21,22 @@ class Method_Classification(method, nn.Module):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     batch_size = 5000
-    max_epoch = 600
+    max_epoch = 800
     learning_rate = 1e-3
-
-    hidden_size = 64
-    num_layers = 2
-    dropout_rate = 0.1
-    weight_decay = 8e-4
-
+    max_review_length = 100
+    hidden_size = 50
+    num_layers = 5
+    dropout_rate = 0.05
+    weight_decay = 1e-5
+    input_size = 50
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.RNN(50, self.hidden_size, self.num_layers, batch_first=True)
+        self.rnn = nn.RNN(self.input_size, self.hidden_size, num_layers=self.num_layers, batch_first=True)
+        # self.rnn = nn.LSTM(self.input_size, self.hidden_size, self.num_layers, batch_first=True)
+        # self.rnn = nn.GRU(self.input_size, self.hidden_size, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, 2)
         self.dropout = nn.Dropout(self.dropout_rate)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
@@ -58,8 +60,8 @@ class Method_Classification(method, nn.Module):
         return index
     # Matches words in the vectors to glove embeddings
     def data_preprocess(self, X):
-        embedding_length = 50
-        max_review_length = 50
+        embedding_length = self.input_size
+        max_review_length = self.max_review_length
         tensor = np.zeros((len(X), max_review_length, embedding_length))
 
         for i, review in enumerate(X):
@@ -96,30 +98,35 @@ class Method_Classification(method, nn.Module):
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
+        print(X[0], y[0])
         dataset = TensorDataset(
             torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
             torch.tensor(np.array(y), device=self.device, dtype=torch.long),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        y_pred_list = []
         for epoch in range(self.max_epoch):
             running_loss = 0.0
             for inputs, y_true in train_loader:
                 optimizer.zero_grad()
                 y_pred = self.forward(inputs)
-                y_pred_list.append(y_pred.max(1)[1])
                 train_loss = loss_function(y_pred, y_true)
                 train_loss.backward()
                 optimizer.step()
                 running_loss += train_loss.item()
-            y_pred_list = torch.cat(y_pred_list)
             self.loss_history.append(running_loss / len(train_loader))
-            if epoch % 10 == 0 or epoch >= self.max_epoch - 1:
+            with torch.no_grad():
+                all_true_y = []
+                all_pred_y = []
+                for inputs, y_true in train_loader:
+                    y_pred = self.forward(inputs)
+                    all_true_y.extend(y_true.cpu().numpy())
+                    all_pred_y.extend(y_pred.cpu().max(1)[1].numpy())
                 accuracy_evaluator.data = {
-                    "true_y": y_true.cpu(),
-                    "pred_y": y_pred_list.cpu().max(1)[1],
+                    "true_y": torch.tensor(all_true_y, device=self.device).cpu(),
+                    "pred_y": torch.tensor(all_pred_y, device=self.device).cpu(),
                 }
                 accuracy = accuracy_evaluator.evaluate()
+            if epoch % 10 == 0 or epoch >= self.max_epoch - 1:
                 print(
                     "Epoch:",
                     epoch,
@@ -128,7 +135,7 @@ class Method_Classification(method, nn.Module):
                     "Loss:",
                     running_loss / len(train_loader),
                 )
-            if accuracy > 0.82:
+            if accuracy > 0.9:
                 break
 
     def test(self, X):
