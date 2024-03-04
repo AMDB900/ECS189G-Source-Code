@@ -28,6 +28,8 @@ class Method_Classification(method, nn.Module):
     dropout_rate = 0  # 0.1
     weight_decay = 0  # 8e-4
 
+    # terminate training if it gets this accurate cuz it might be overfitting
+    termination_acc = 0.88
     loss_history = []
 
     def __init__(self, mName, mDescription):
@@ -113,7 +115,7 @@ class Method_Classification(method, nn.Module):
                     "Loss:",
                     running_loss / len(train_loader),
                 )
-            if accuracy > 0.82:
+            if accuracy > self.termination_acc:
                 break
 
     def test(self, X):
