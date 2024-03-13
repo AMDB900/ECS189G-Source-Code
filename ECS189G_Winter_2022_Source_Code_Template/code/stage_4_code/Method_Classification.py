@@ -12,36 +12,34 @@ import torch
 from torch import nn
 import numpy as np
 import time
-from gensim.models import Word2Vec
-import gensim
 
 class Method_Classification(method, nn.Module):
     data = None
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 5000
-    max_epoch = 750
+    batch_size = 25000
+    max_epoch = 250
     learning_rate = 1e-3
 
-    max_review_length = 100
+    max_review_length = 120
     hidden_size = 35
     num_layers = 5
     dropout_rate = 0  # 0.1
     weight_decay = 0  # 8e-4
 
+    # terminate training if it gets this accurate cuz it might be overfitting
+    termination_acc = 0.88
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.RNN(self.input_size, self.hidden_size, num_layers=self.num_layers, batch_first=True)
-        # self.rnn = nn.LSTM(self.input_size, self.hidden_size, self.num_layers, batch_first=True)
-        # self.rnn = nn.GRU(self.input_size, self.hidden_size, self.num_layers, batch_first=True)
+        self.rnn = nn.LSTM(50, self.hidden_size, self.num_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, 2)
         self.dropout = nn.Dropout(self.dropout_rate)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
-        # self.gensim_model = None
+
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
@@ -50,6 +48,7 @@ class Method_Classification(method, nn.Module):
         out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
+
     def load_glove(self, glove_file):
         index = {}
         with open(glove_file, 'r', encoding='utf-8') as f:
@@ -71,23 +70,10 @@ class Method_Classification(method, nn.Module):
                 if word not in self.glove_embeddings:
                     continue
                 embedding = self.glove_embeddings.get(word)
+
                 tensor[i, j, :] = embedding
 
         return tensor
-
-    # def data_embed(self, X):
-    #     embedding_length = 50
-    #     max_review_length = 50
-    #     tensor = np.zeros((len(X), max_review_length, embedding_length))
-    #     unk_embedding = np.ones(embedding_length, dtype='float32')
-    #     for i, review in enumerate(X):
-    #         for j, word in enumerate(review):
-    #             if j == max_review_length:
-    #                 break
-    #             embedding = self.gensim_model.wv[word] if word in self.gensim_model.wv else unk_embedding
-    #
-    #             tensor[i, j, :] = embedding
-    #     return tensor
 
     def train(self, X, y):
         # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
@@ -98,12 +84,12 @@ class Method_Classification(method, nn.Module):
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
-        print(X[0], y[0])
         dataset = TensorDataset(
             torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
             torch.tensor(np.array(y), device=self.device, dtype=torch.long),
         )
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
         for epoch in range(self.max_epoch):
             running_loss = 0.0
             for inputs, y_true in train_loader:
@@ -113,20 +99,14 @@ class Method_Classification(method, nn.Module):
                 train_loss.backward()
                 optimizer.step()
                 running_loss += train_loss.item()
+
             self.loss_history.append(running_loss / len(train_loader))
-            with torch.no_grad():
-                all_true_y = []
-                all_pred_y = []
-                for inputs, y_true in train_loader:
-                    y_pred = self.forward(inputs)
-                    all_true_y.extend(y_true.cpu().numpy())
-                    all_pred_y.extend(y_pred.cpu().max(1)[1].numpy())
+            if epoch % 5 == 0 or epoch == self.max_epoch - 1:
                 accuracy_evaluator.data = {
-                    "true_y": torch.tensor(all_true_y, device=self.device).cpu(),
-                    "pred_y": torch.tensor(all_pred_y, device=self.device).cpu(),
+                    "true_y": y_true.cpu(),
+                    "pred_y": y_pred.cpu().max(1)[1],
                 }
                 accuracy = accuracy_evaluator.evaluate()
-            if epoch % 10 == 0 or epoch >= self.max_epoch - 1:
                 print(
                     "Epoch:",
                     epoch,
@@ -135,12 +115,11 @@ class Method_Classification(method, nn.Module):
                     "Loss:",
                     running_loss / len(train_loader),
                 )
-            if accuracy > 0.9:
+            if accuracy > self.termination_acc:
                 break
 
     def test(self, X):
-        test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32),
-                                 batch_size=self.batch_size)
+        test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32), batch_size=250)
 
         y_pred_list = []
 
@@ -156,8 +135,6 @@ class Method_Classification(method, nn.Module):
         start = time.perf_counter()
         print("method running...")
         print("--start training...")
-        # data = self.data["train"]["X"]
-        # self.gensim_model = gensim.models.Word2Vec(data, min_count=1, vector_size=50, window=5)
         self.train(self.data["train"]["X"], self.data["train"]["y"])
         print("--start testing...")
         pred_y_train = self.test(self.data["train"]["X"])
