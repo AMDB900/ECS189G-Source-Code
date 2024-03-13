@@ -18,7 +18,7 @@ class Method_Classification(method, nn.Module):
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 25000
+    batch_size = 5000
     max_epoch = 250
     learning_rate = 1e-3
 
@@ -35,9 +35,14 @@ class Method_Classification(method, nn.Module):
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.rnn = nn.LSTM(50, self.hidden_size, self.num_layers, batch_first=True)
+        self.rnn = nn.LSTM(
+            50,
+            self.hidden_size,
+            self.num_layers,
+            batch_first=True,
+            dropout=self.dropout_rate,
+        )
         self.fc = nn.Linear(self.hidden_size, 2)
-        self.dropout = nn.Dropout(self.dropout_rate)
         self.glove_embeddings = self.load_glove("data/stage_4_data/glove.6B.50d.txt")
 
     # it defines the forward propagation function for input x
@@ -45,7 +50,6 @@ class Method_Classification(method, nn.Module):
 
     def forward(self, X):
         out, _ = self.rnn(X)
-        out = self.dropout(out)
         out = self.fc(out[:, -1, :])
         return out
 
