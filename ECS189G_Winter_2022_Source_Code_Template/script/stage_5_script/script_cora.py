@@ -1,5 +1,5 @@
 from code.stage_5_code.Dataset_Loader import Dataset_Loader
-from code.stage_5_code.Method_CORA import Method_CORA
+from code.stage_5_code.Method_GCN import Method_GCN
 from code.stage_2_code.Result_Saver import Result_Saver
 from code.stage_2_code.Setting_Train_Test import Setting_Train_Test
 from code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
@@ -23,7 +23,7 @@ if 1:
     data_obj.dataset_source_folder_path = "data/stage_5_data/cora"
     data_obj.dataset_name = "cora"
 
-    method_obj = Method_CORA("GCN ", "").to(device)
+    method_obj = Method_GCN("GCN ", "").to(device)
 
     result_obj = Result_Saver("saver", "")
     result_obj.result_destination_folder_path = "result/stage_5_result/cora_"
