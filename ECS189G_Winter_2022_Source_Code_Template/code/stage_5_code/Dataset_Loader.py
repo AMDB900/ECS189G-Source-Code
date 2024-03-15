@@ -110,11 +110,6 @@ class Dataset_Loader(dataset):
         # train_x = features[idx_train]
         # val_x = features[idx_val]
         # test_x = features[idx_test]
-        print("----")
-        print(idx_train)
-        print(len(idx_train))
-        print("----")
-
         train_test = {
             "idx_train": idx_train,
             "idx_test": idx_test,
@@ -126,4 +121,10 @@ class Dataset_Loader(dataset):
             "y": labels,
             "utility": {"A": adj, "reverse_idx": reverse_idx_map},
         }
+
+        # print("----")
+        # print(idx_map)
+        # print(edges)
+        # print("----")
+
         return {"graph": graph, "train_test": train_test}

@@ -13,49 +13,48 @@ from torch import nn
 import numpy as np
 import time
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
+from code.stage_5_code.GraphConvolution import GraphConvolution
 
 class Method_GCN(method, nn.Module):
     data = None
-    glove_embeddings = None
+    adj = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    training = False
 
     max_epoch = 150
     learning_rate = 1e-3
 
-    max_review_length = 120
-    hidden_size = 35
+    hidden_size = 100
+    dropout = 0.2
 
     # terminate training if it gets this accurate cuz it might be overfitting
-    termination_acc = 0.88
+    termination_acc = 1
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.conv1 = GCNConv(10, self.hidden_size)
-        self.conv2 = GCNConv(self.hidden_size, 2)
+        self.gc1 = GraphConvolution(1433, self.hidden_size)
+        self.gc2 = GraphConvolution(self.hidden_size, 7)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
 
     def forward(self, X):
-        x, edge_index = X.x, X.edge_index
+        X = F.relu(self.gc1(X, self.adj))
+        X = F.dropout(X, self.dropout, training=self.training)
+        X = self.gc2(X, self.adj)
+        return F.log_softmax(X, dim=1)
 
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        x = F.dropout(x, training=self.training)
+    def load_adj(self, adj):
+        self.adj = adj.to(self.device)
 
-        x = self.conv2(x, edge_index)
+    def train(self, X, y, idx_train):
 
-        return F.log_softmax(x, dim=1)
-
-    def train(self, X, y):
-        # check here for the torch.optim doc: https://pytorch.org/docs/stable/optim.html
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        # check here for the nn.CrossEntropyLoss doc: https://pytorch.org/docs/stable/generated/torch.nn.CrossEntropyLoss.html
         loss_function = nn.CrossEntropyLoss()
-        # for training accuracy investigation purpose
+        self.training = True
+
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
 
         inputs = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
@@ -64,7 +63,7 @@ class Method_GCN(method, nn.Module):
         for epoch in range(self.max_epoch):
             optimizer.zero_grad()
             y_pred = self.forward(inputs)
-            train_loss = loss_function(y_pred, y_true)
+            train_loss = loss_function(y_pred[idx_train], y_true[idx_train])
             train_loss.backward()
             optimizer.step()
 
@@ -87,27 +86,35 @@ class Method_GCN(method, nn.Module):
                 break
 
     def test(self, X):
-        outputs = self.forward(X)
+        self.training = False
+        inputs = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
+        outputs = self.forward(inputs).max(1)[1]
         return outputs
 
     def run(self):
         start = time.perf_counter()
         print("method running...")
+
+        idx_train = self.data["train_test"]["idx_train"]
+        idx_test = self.data["train_test"]["idx_test"]
+        self.load_adj(self.data["graph"]["utility"]["A"])
+
         print("--start training...")
-        self.train(self.data["train"]["X"], self.data["train"]["y"])
+
+        self.train(self.data["graph"]["X"], self.data["graph"]["y"], idx_train)
+
         print("--start testing...")
-        pred_y_train = self.test(self.data["train"]["X"])
-        pred_y_test = self.test(self.data["test"]["X"])
+        pred_y = self.test(self.data["graph"]["X"])
         end = time.perf_counter()
         print((end - start)/60, " minutes elapsed")
         return (
             {
-                "pred_y": pred_y_train.cpu(),
-                "true_y": self.data["train"]["y"],
+                "pred_y": pred_y.cpu()[idx_train],
+                "true_y": self.data["graph"]["y"][idx_train],
             },
             {
-                "pred_y": pred_y_test.cpu(),
-                "true_y": self.data["test"]["y"],
+                "pred_y": pred_y.cpu()[idx_test],
+                "true_y": self.data["graph"]["y"][idx_test],
             },
             self.loss_history,
         )
