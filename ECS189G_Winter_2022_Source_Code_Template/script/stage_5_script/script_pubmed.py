@@ -8,7 +8,7 @@ import torch
 import matplotlib.pyplot as plt
 
 # run with
-# python3 -m script.stage_5_script.script_cora
+# python3 -m script.stage_5_script.script_pubmed
 
 # ---- Multi-Layer Perceptron script ----
 if 1:
