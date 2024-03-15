@@ -45,6 +45,21 @@ class Dataset_Loader(dataset):
         onehot_labels = np.array(list(map(classes_dict.get, labels)), dtype=np.int32)
         return onehot_labels
 
+    # this just gets the first ntrain 0s, 1s, 2s, etc and the first ntest 0s, 1s, etc
+    def sample(self, labels, ntrain, ntest):
+        all = []
+        for i in range(max(labels) + 1):
+            single_sample = [id for id, label in enumerate(labels) if label == i][
+                : ntrain + ntest
+            ]
+            all.append(single_sample)
+        train = []
+        test = []
+        for single_sample in all:
+            train += single_sample[:ntrain]
+            test += single_sample[ntrain:]
+        return train, test
+
     def load(self):
         """Load citation network dataset"""
         print("Loading {} dataset...".format(self.dataset_name))
@@ -82,38 +97,27 @@ class Dataset_Loader(dataset):
         # the following part, you can either put them into the setting class or you can leave them in the dataset loader
         # the following train, test, val index are just examples, sample the train, test according to project requirements
         if self.dataset_name == "cora":
-            idx_train = range(140)
-            idx_test = range(200, 1200)
-            idx_val = range(1200, 1500)
+            idx_train, idx_test = self.sample(labels, 20, 150)
         elif self.dataset_name == "citeseer":
-            idx_train = range(120)
-            idx_test = range(200, 1200)
-            idx_val = range(1200, 1500)
+            idx_train, idx_test = self.sample(labels, 20, 200)
         elif self.dataset_name == "pubmed":
-            idx_train = range(60)
-            idx_test = range(6300, 7300)
-            idx_val = range(6000, 6300)
-        # ---- cora-small is a toy dataset I hand crafted for debugging purposes ---
-        elif self.dataset_name == "cora-small":
-            idx_train = range(5)
-            idx_val = range(5, 10)
-            idx_test = range(5, 10)
+            idx_train, idx_test = self.sample(labels, 20, 200)
 
         idx_train = torch.LongTensor(idx_train)
-        idx_val = torch.LongTensor(idx_val)
+        # idx_val = torch.LongTensor(idx_val)
         idx_test = torch.LongTensor(idx_test)
         # get the training nodes/testing nodes
-        train_x = features[idx_train]
-        val_x = features[idx_val]
-        test_x = features[idx_test]
+        # train_x = features[idx_train]
+        # val_x = features[idx_val]
+        # test_x = features[idx_test]
         print("----")
-        print(train_x, val_x, test_x)
+        print(idx_train)
+        print(len(idx_train))
         print("----")
 
-        train_test_val = {
+        train_test = {
             "idx_train": idx_train,
             "idx_test": idx_test,
-            "idx_val": idx_val,
         }
         graph = {
             "node": idx_map,
@@ -122,4 +126,4 @@ class Dataset_Loader(dataset):
             "y": labels,
             "utility": {"A": adj, "reverse_idx": reverse_idx_map},
         }
-        return {"graph": graph, "train_test_val": train_test_val}
+        return {"graph": graph, "train_test": train_test}

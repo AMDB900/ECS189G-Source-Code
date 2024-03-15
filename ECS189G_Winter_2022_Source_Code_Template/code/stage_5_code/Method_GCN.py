@@ -14,12 +14,12 @@ import numpy as np
 import time
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+
 class Method_GCN(method, nn.Module):
     data = None
     glove_embeddings = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    batch_size = 5000
     max_epoch = 150
     learning_rate = 1e-3
 
@@ -33,8 +33,8 @@ class Method_GCN(method, nn.Module):
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.conv1 = GCNConv(self.input_size, self.hidden_size)
-        self.conv2 = GCNConv(self.hidden_size, self.output_size)
+        self.conv1 = GCNConv(10, self.hidden_size)
+        self.conv2 = GCNConv(self.hidden_size, 2)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -57,23 +57,18 @@ class Method_GCN(method, nn.Module):
         loss_function = nn.CrossEntropyLoss()
         # for training accuracy investigation purpose
         accuracy_evaluator = Evaluate_Accuracy("training evaluator", "")
-        dataset = TensorDataset(
-            torch.tensor(np.array(X), device=self.device, dtype=torch.float32),
-            torch.tensor(np.array(y), device=self.device, dtype=torch.long),
-        )
-        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
+        inputs = torch.tensor(np.array(X), device=self.device, dtype=torch.float32)
+        y_true = torch.tensor(np.array(y), device=self.device, dtype=torch.long)
 
         for epoch in range(self.max_epoch):
-            running_loss = 0.0
-            for inputs, y_true in train_loader:
-                optimizer.zero_grad()
-                y_pred = self.forward(inputs)
-                train_loss = loss_function(y_pred, y_true)
-                train_loss.backward()
-                optimizer.step()
-                running_loss += train_loss.item()
+            optimizer.zero_grad()
+            y_pred = self.forward(inputs)
+            train_loss = loss_function(y_pred, y_true)
+            train_loss.backward()
+            optimizer.step()
 
-            self.loss_history.append(running_loss / len(train_loader))
+            self.loss_history.append(train_loss.item())
             if epoch % 5 == 0 or epoch == self.max_epoch - 1:
                 accuracy_evaluator.data = {
                     "true_y": y_true.cpu(),
@@ -86,23 +81,14 @@ class Method_GCN(method, nn.Module):
                     "Accuracy:",
                     accuracy,
                     "Loss:",
-                    running_loss / len(train_loader),
                 )
+
             if accuracy > self.termination_acc:
                 break
 
     def test(self, X):
-        test_loader = DataLoader(torch.tensor(self.data_preprocess(X), device=self.device, dtype=torch.float32), batch_size=250)
-
-        y_pred_list = []
-
-        for inputs in test_loader:
-            outputs = self.forward(inputs)
-            y_pred_list.append(outputs.max(1)[1])
-
-        y_pred = torch.cat(y_pred_list)
-
-        return y_pred
+        outputs = self.forward(X)
+        return outputs
 
     def run(self):
         start = time.perf_counter()
