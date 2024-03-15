@@ -22,21 +22,27 @@ class Method_Citeseer(method, nn.Module):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training = False
 
-    max_epoch = 350
-    learning_rate = 5.1e-4
+    max_epoch = None
+    learning_rate = None
 
-    hidden_size = 500
-    dropout = 0.95
-    weight_decay = 0.187
+    hidden_size = None
+    dropout = None
+    weight_decay = None
 
     loss_history = []
 
-    def __init__(self, mName, mDescription):
+    def __init__(self, mName, mDescription, a_max_epoch=350, a_learning_rate=5e-4, a_hidden_size=500, a_dropout=0.95, a_weight_decay=0.187):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
         self.gc1 = GraphConvolution(3703, self.hidden_size)
         self.gc2 = GraphConvolution(self.hidden_size, self.hidden_size)
         self.gc3 = GraphConvolution(self.hidden_size, 6)
+
+        self.max_epoch = a_max_epoch
+        self.learning_rate = a_learning_rate
+        self.hidden_size = a_hidden_size
+        self.dropout = a_dropout
+        self.weight_decay = a_weight_decay
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
