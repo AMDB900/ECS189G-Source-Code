@@ -93,6 +93,14 @@ class Method_Citeseer(method, nn.Module):
         start = time.perf_counter()
         print("method running...")
 
+        print(
+            "max_epoch:", self.max_epoch,
+            "learning_rate:", self.learning_rate,
+            "hidden_size:", self.hidden_size,
+            "dropout:", self.dropout,
+            "weight_decay:", self.weight_decay
+        )
+
         idx_train = self.data["train_test"]["idx_train"]
         idx_test = self.data["train_test"]["idx_test"]
         self.load_adj(self.data["graph"]["utility"]["A"])
