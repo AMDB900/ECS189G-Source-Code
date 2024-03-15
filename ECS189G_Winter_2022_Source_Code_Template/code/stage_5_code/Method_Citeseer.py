@@ -22,12 +22,12 @@ class Method_Citeseer(method, nn.Module):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training = False
 
-    max_epoch = 120
-    learning_rate = 1e-3
+    max_epoch = 350
+    learning_rate = 5e-4
 
-    hidden_size = 130
-    dropout = 0.7
-    weight_decay = 0.1
+    hidden_size = 500
+    dropout = 0.95
+    weight_decay = 0.187
 
     loss_history = []
 
