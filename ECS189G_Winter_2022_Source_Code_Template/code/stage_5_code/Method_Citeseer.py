@@ -16,17 +16,17 @@ import torch.nn.functional as F
 from code.stage_5_code.GraphConvolution import GraphConvolution
 
 
-class Method_Cora(method, nn.Module):
+class Method_Citeseer(method, nn.Module):
     data = None
     adj = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training = False
 
-    max_epoch = 200
+    max_epoch = 150
     learning_rate = 1e-3
 
-    hidden_size = 150
-    dropout = 0.5
+    hidden_size = 50
+    dropout = 0
 
     # terminate training if it gets this accurate cuz it might be overfitting
     termination_acc = 1
@@ -35,8 +35,9 @@ class Method_Cora(method, nn.Module):
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
-        self.gc1 = GraphConvolution(1433, self.hidden_size)
-        self.gc2 = GraphConvolution(self.hidden_size, 7)
+        self.gc1 = GraphConvolution(3703, self.hidden_size)
+        # self.gc2 = GraphConvolution(self.hidden_size, self.hidden_size)
+        self.gc3 = GraphConvolution(self.hidden_size, 6)
 
     # it defines the forward propagation function for input x
     # this function will calculate the output layer by layer
@@ -44,7 +45,9 @@ class Method_Cora(method, nn.Module):
     def forward(self, X):
         X = F.relu(self.gc1(X, self.adj))
         X = F.dropout(X, self.dropout, training=self.training)
-        X = self.gc2(X, self.adj)
+        # X = F.relu(self.gc2(X, self.adj))
+        # X = F.dropout(X, self.dropout, training=self.training)
+        X = self.gc3(X, self.adj)
         return F.log_softmax(X, dim=1)
 
     def load_adj(self, adj):

@@ -1,5 +1,5 @@
 from code.stage_5_code.Dataset_Loader import Dataset_Loader
-from code.stage_5_code.Method_Cora import Method_Cora
+from code.stage_5_code.Method_Citeseer import Method_Citeseer
 from code.stage_2_code.Result_Saver import Result_Saver
 from code.stage_2_code.Setting_Train_Test import Setting_Train_Test
 from code.stage_2_code.Evaluate_Accuracy import Evaluate_Accuracy
@@ -20,13 +20,13 @@ if 1:
 
     # ---- objection initialization setction ---------------
     data_obj = Dataset_Loader("train", "")
-    data_obj.dataset_source_folder_path = "data/stage_5_data/cora"
-    data_obj.dataset_name = "cora"
+    data_obj.dataset_source_folder_path = "data/stage_5_data/citeseer"
+    data_obj.dataset_name = "citeseer"
 
-    method_obj = Method_Cora("GCN ", "").to(device)
+    method_obj = Method_Citeseer("GCN ", "").to(device)
 
     result_obj = Result_Saver("saver", "")
-    result_obj.result_destination_folder_path = "result/stage_5_result/cora_"
+    result_obj.result_destination_folder_path = "result/stage_5_result/citeseer_"
     result_obj.result_destination_file_name = "prediction_result"
 
     setting_obj = Setting_Train_Test("pre split", "")
@@ -35,7 +35,7 @@ if 1:
     # ------------------------------------------------------
 
     # ---- running section ---------------------------------
-    data_name = "Cora"
+    data_name = "Citeseer"
     print("************ Start ************")
     setting_obj.prepare(data_obj, method_obj, result_obj, evaluate_obj)
     setting_obj.print_setup_summary()
