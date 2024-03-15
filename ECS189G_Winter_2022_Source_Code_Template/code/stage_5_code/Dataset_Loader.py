@@ -9,6 +9,7 @@ from code.base_class.dataset import dataset
 import torch
 import numpy as np
 import scipy.sparse as sp
+import random
 
 
 class Dataset_Loader(dataset):
@@ -17,6 +18,8 @@ class Dataset_Loader(dataset):
 
     def __init__(self, seed=None, dName=None, dDescription=None):
         super(Dataset_Loader, self).__init__(dName, dDescription)
+        # seed here idk go crazy with it
+        random.seed(1)
 
     def adj_normalize(self, mx):
         """normalize sparse matrix"""
@@ -49,9 +52,9 @@ class Dataset_Loader(dataset):
     def sample(self, labels, ntrain, ntest):
         all = []
         for i in range(max(labels) + 1):
-            single_sample = [id for id, label in enumerate(labels) if label == i][
-                : ntrain + ntest
-            ]
+            single_sample = random.sample(
+                [id for id, label in enumerate(labels) if label == i], ntrain + ntest
+            )
             all.append(single_sample)
         train = []
         test = []
@@ -121,10 +124,5 @@ class Dataset_Loader(dataset):
             "y": labels,
             "utility": {"A": adj, "reverse_idx": reverse_idx_map},
         }
-
-        # print("----")
-        # print(idx_map)
-        # print(edges)
-        # print("----")
 
         return {"graph": graph, "train_test": train_test}

@@ -15,17 +15,18 @@ import time
 import torch.nn.functional as F
 from code.stage_5_code.GraphConvolution import GraphConvolution
 
-class Method_GCN(method, nn.Module):
+
+class Method_CORA(method, nn.Module):
     data = None
     adj = None
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training = False
 
-    max_epoch = 150
+    max_epoch = 200
     learning_rate = 1e-3
 
-    hidden_size = 100
-    dropout = 0.2
+    hidden_size = 150
+    dropout = 0.5
 
     # terminate training if it gets this accurate cuz it might be overfitting
     termination_acc = 1
@@ -75,11 +76,7 @@ class Method_GCN(method, nn.Module):
                 }
                 accuracy = accuracy_evaluator.evaluate()
                 print(
-                    "Epoch:",
-                    epoch,
-                    "Accuracy:",
-                    accuracy,
-                    "Loss:",
+                    "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
                 )
 
             if accuracy > self.termination_acc:
@@ -106,7 +103,7 @@ class Method_GCN(method, nn.Module):
         print("--start testing...")
         pred_y = self.test(self.data["graph"]["X"])
         end = time.perf_counter()
-        print((end - start)/60, " minutes elapsed")
+        print((end - start) / 60, " minutes elapsed")
         return (
             {
                 "pred_y": pred_y.cpu()[idx_train],
