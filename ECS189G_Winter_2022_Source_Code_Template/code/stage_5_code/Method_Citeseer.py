@@ -23,7 +23,7 @@ class Method_Citeseer(method, nn.Module):
     training = False
 
     max_epoch = 350
-    learning_rate = 5e-4
+    learning_rate = 5.1e-4
 
     hidden_size = 500
     dropout = 0.95
@@ -73,7 +73,7 @@ class Method_Citeseer(method, nn.Module):
             optimizer.step()
 
             self.loss_history.append(train_loss.item())
-            if epoch % 5 == 0 or epoch == self.max_epoch - 1:
+            if epoch % 100 == 0 or epoch == self.max_epoch - 1:
                 accuracy_evaluator.data = {
                     "true_y": y_true.cpu(),
                     "pred_y": y_pred.cpu().max(1)[1],
