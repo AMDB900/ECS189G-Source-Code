@@ -36,7 +36,7 @@ class Dataset_Loader(dataset):
         )
         values = torch.from_numpy(sparse_mx.data)
         shape = torch.Size(sparse_mx.shape)
-        return torch.sparse.FloatTensor(indices, values, shape)
+        return torch.sparse_coo_tensor(indices, values, shape)
 
     def encode_onehot(self, labels):
         classes = set(labels)
