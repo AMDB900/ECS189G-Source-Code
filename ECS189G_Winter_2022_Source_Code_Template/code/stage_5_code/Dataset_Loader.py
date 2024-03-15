@@ -18,8 +18,6 @@ class Dataset_Loader(dataset):
 
     def __init__(self, seed=None, dName=None, dDescription=None):
         super(Dataset_Loader, self).__init__(dName, dDescription)
-        # seed here idk go crazy with it
-        random.seed(1)
 
     def adj_normalize(self, mx):
         """normalize sparse matrix"""
@@ -52,6 +50,8 @@ class Dataset_Loader(dataset):
     def sample(self, labels, ntrain, ntest):
         all = []
         for i in range(max(labels) + 1):
+            # idk whats up with this seed its still making random numbers
+            random.seed(1)
             single_sample = random.sample(
                 [id for id, label in enumerate(labels) if label == i], ntrain + ntest
             )
@@ -107,12 +107,10 @@ class Dataset_Loader(dataset):
             idx_train, idx_test = self.sample(labels, 20, 200)
 
         idx_train = torch.LongTensor(idx_train)
-        # idx_val = torch.LongTensor(idx_val)
         idx_test = torch.LongTensor(idx_test)
-        # get the training nodes/testing nodes
-        # train_x = features[idx_train]
-        # val_x = features[idx_val]
-        # test_x = features[idx_test]
+
+        print(idx_train)
+
         train_test = {
             "idx_train": idx_train,
             "idx_test": idx_test,

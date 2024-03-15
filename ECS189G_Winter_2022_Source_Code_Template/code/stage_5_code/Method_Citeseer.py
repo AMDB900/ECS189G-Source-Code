@@ -22,21 +22,20 @@ class Method_Citeseer(method, nn.Module):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     training = False
 
-    max_epoch = 150
+    max_epoch = 250
     learning_rate = 1e-3
 
-    hidden_size = 50
-    dropout = 0
+    hidden_size = 120
+    dropout = 0.6
+    weight_decay = 0.1
 
-    # terminate training if it gets this accurate cuz it might be overfitting
-    termination_acc = 1
     loss_history = []
 
     def __init__(self, mName, mDescription):
         method.__init__(self, mName, mDescription)
         nn.Module.__init__(self)
         self.gc1 = GraphConvolution(3703, self.hidden_size)
-        # self.gc2 = GraphConvolution(self.hidden_size, self.hidden_size)
+        self.gc2 = GraphConvolution(self.hidden_size, self.hidden_size)
         self.gc3 = GraphConvolution(self.hidden_size, 6)
 
     # it defines the forward propagation function for input x
@@ -45,8 +44,8 @@ class Method_Citeseer(method, nn.Module):
     def forward(self, X):
         X = F.relu(self.gc1(X, self.adj))
         X = F.dropout(X, self.dropout, training=self.training)
-        # X = F.relu(self.gc2(X, self.adj))
-        # X = F.dropout(X, self.dropout, training=self.training)
+        X = F.relu(self.gc2(X, self.adj))
+        X = F.dropout(X, self.dropout, training=self.training)
         X = self.gc3(X, self.adj)
         return F.log_softmax(X, dim=1)
 
@@ -55,7 +54,9 @@ class Method_Citeseer(method, nn.Module):
 
     def train(self, X, y, idx_train):
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
+        )
         loss_function = nn.CrossEntropyLoss()
         self.training = True
 
@@ -81,9 +82,6 @@ class Method_Citeseer(method, nn.Module):
                 print(
                     "Epoch:", epoch, "Accuracy:", accuracy, "Loss:", train_loss.item()
                 )
-
-            if accuracy > self.termination_acc:
-                break
 
     def test(self, X):
         self.training = False
