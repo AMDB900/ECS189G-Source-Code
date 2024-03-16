@@ -17,6 +17,7 @@ class dataset:
     
     dataset_name = None
     dataset_descrition = None
+    d_seed = None
     
     dataset_source_folder_path = None
     dataset_source_file_name = None
@@ -24,13 +25,14 @@ class dataset:
     data = None
     
     # initialization function
-    def __init__(self, dName=None, dDescription=None):
+    def __init__(self, dName=None, dDescription=None, dSeed = None):
         '''
         Parameters: dataset name: dName, dataset description: dDescription
         Assign the parameters to the entries of the base class
         '''
         self.dataset_name = dName
         self.dataset_descrition = dDescription
+        self.d_seed = dSeed
     
     # information print function
     def print_dataset_information(self):

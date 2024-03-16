@@ -15,9 +15,10 @@ import random
 class Dataset_Loader(dataset):
     data = None
     dataset_name = None
+    # dSeed = None
 
-    def __init__(self, seed=None, dName=None, dDescription=None):
-        super(Dataset_Loader, self).__init__(dName, dDescription)
+    def __init__(self, seed=None, dName=None, dDescription=None, dSeed=None):
+        super(Dataset_Loader, self).__init__(dName, dDescription, dSeed)
 
     def adj_normalize(self, mx):
         """normalize sparse matrix"""
@@ -49,9 +50,11 @@ class Dataset_Loader(dataset):
     # this just gets the first ntrain 0s, 1s, 2s, etc and the first ntest 0s, 1s, etc
     def sample(self, labels, ntrain, ntest):
         all = []
+        seedNum = self.d_seed
+        print(seedNum)
         for i in range(max(labels) + 1):
             # idk whats up with this seed its still making random numbers
-            random.seed(1)
+            random.seed(seedNum)
             single_sample = random.sample(
                 [id for id, label in enumerate(labels) if label == i], ntrain + ntest
             )
